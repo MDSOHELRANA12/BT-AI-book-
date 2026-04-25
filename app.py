@@ -2,100 +2,110 @@ import streamlit as st
 from supabase import create_client
 import uuid
 
-# 1. SERVER CONNECTION
+# 1. SERVER CONFIGURATION
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
-# 2. PAGE SETTINGS
-st.set_page_config(page_title="Bt-Ai-Book Global", layout="centered", page_icon="💰")
+# 2. PAGE UI SETTINGS (Mobile Optimized)
+st.set_page_config(page_title="Bt-Ai-Book Global", layout="centered", page_icon="📱")
 
-# 3. PREMIUM UI DESIGN (TikTok Dark Mode)
+# Premium CSS for TikTok look
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
     .stApp { background-color: #000; }
-    .stVideo { height: 600px !important; border-radius: 20px; border: 2px solid #fe2c55; }
+    /* Vertical Video Frame */
+    .stVideo { 
+        height: 650px !important; 
+        border-radius: 25px; 
+        border: 3px solid #fe2c55; 
+        box-shadow: 0px 0px 15px #fe2c55;
+    }
     .stButton>button { 
-        border-radius: 30px; background: linear-gradient(45deg, #fe2c55, #ff1e56); 
+        border-radius: 30px; 
+        background: linear-gradient(45deg, #fe2c55, #ff1e56); 
         color: white; border: none; font-weight: bold; width: 100%; height: 50px;
     }
-    .bank-card {
-        background: #111; padding: 20px; border-radius: 15px; 
-        border-left: 6px solid #00c6ff; margin-top: 20px;
+    .bank-info {
+        background: #111; padding: 25px; border-radius: 20px; 
+        border-left: 8px solid #00c6ff; margin-top: 25px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 4. SIDEBAR NAVIGATION
+# 3. GLOBAL NAVIGATION
 st.sidebar.title("✪ Bt-Ai-Book")
-st.sidebar.write("Global Business Platform")
-menu = ["🔥 Global Feed", "📤 Post Reel", "🔐 Face ID Security", "🤖 Bt-Ai Assistant", "💰 Bank & Earnings"]
+st.sidebar.info("Global Business Mode: Active")
+menu = ["🔥 Trending Reels", "📤 Upload Short", "🔐 Face Security", "💰 Wallet & Bank"]
 choice = st.sidebar.selectbox("Navigate Menu", menu)
 
-# --- SECTION 1: GLOBAL VIDEO FEED ---
-if choice == "🔥 Global Feed":
-    st.title("🌎 Trending Globally")
+# --- SECTION 1: GLOBAL VIDEO FEED (TikTok Style) ---
+if choice == "🔥 Trending Reels":
+    st.title("🌎 Global Trending")
     try:
+        # Fetching latest videos from Supabase
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         if res.data:
             for v in res.data:
-                st.video(v['video_url'])
-                st.button(f"❤️ Like & Support", key=f"l_{v['id']}")
-                st.write("---")
+                with st.container():
+                    st.video(v['video_url'])
+                    col1, col2 = st.columns([1,1])
+                    col1.button(f"❤️ Like", key=f"l_{v['id']}")
+                    col2.button(f"🚀 Share", key=f"s_{v['id']}")
+                    st.write("---")
         else:
-            st.info("Feed is empty. Be the first to post!")
+            st.info("No videos yet. Be the first to upload!")
     except:
-        st.error("Connecting to server... Please wait.")
+        st.error("Connecting to server... Ensure Supabase Table is ready.")
 
-# --- SECTION 2: VIDEO UPLOADER ---
-elif choice == "📤 Post Reel":
+# --- SECTION 2: UPLOAD SYSTEM ---
+elif choice == "📤 Upload Short":
     st.title("📤 Creator Studio")
     st.write("Upload TikTok size vertical videos to earn revenue.")
-    vid = st.file_uploader("Choose Video (MP4)", type=['mp4'])
-    if st.button("Publish to Global Feed") and vid:
-        with st.spinner("Uploading to Global Server..."):
+    vid_file = st.file_uploader("Select Video File (MP4)", type=['mp4'])
+    
+    if st.button("🚀 Publish Globally") and vid_file:
+        with st.spinner("Processing High-Quality Upload..."):
             try:
+                # 1. Unique ID and Storage Upload
                 fname = f"public/{uuid.uuid4()}.mp4"
-                supabase.storage.from_('videos').upload(fname, vid.read())
+                supabase.storage.from_('videos').upload(fname, vid_file.read())
+                
+                # 2. Get Public URL
                 v_url = supabase.storage.from_('videos').get_public_url(fname)
+                
+                # 3. Save to Database
                 supabase.table("videos").insert({"video_url": v_url}).execute()
+                
                 st.balloons()
-                st.success("Your video is LIVE now!")
+                st.success("Your video is now LIVE across the world!")
             except Exception as e:
-                st.error("Error! Please check if 'videos' bucket is PUBLIC in Supabase.")
+                st.error(f"Error: {e}. Ensure 'videos' bucket is PUBLIC in Supabase.")
 
 # --- SECTION 3: FACE ID SECURITY ---
-elif choice == "🔐 Face ID Security":
-    st.title("🔐 Face ID Registration")
-    st.write("Secure your earnings with face verification.")
-    st.camera_input("Scan your face identity")
-    st.button("Save Face Data")
+elif choice == "🔐 Face Security":
+    st.title("🔐 Face ID Identity")
+    st.write("Scan face for bank withdrawal protection.")
+    st.camera_input("Verify Your Identity")
+    st.button("Register My Face ID")
 
-# --- SECTION 4: AI ASSISTANT ---
-elif choice == "🤖 Bt-Ai Assistant":
-    st.title("🤖 Global Smart Bot")
-    query = st.chat_input("Ask me anything about your earnings...")
-    if query:
-        st.chat_message("assistant").write("Bt-Ai is monitoring your global traffic. Your bank account is ready for withdrawal.")
-
-# --- SECTION 5: BANK DETAILS & EARNINGS ---
-elif choice == "💰 Bank & Earnings":
+# --- SECTION 4: BANK & WITHDRAWAL ---
+elif choice == "💰 Wallet & Bank":
     st.title("💰 Revenue Center")
-    col1, col2 = st.columns(2)
-    col1.metric("Current Balance", "$120.45", "+$15.20")
-    col2.metric("Total Views", "8,540")
+    c1, c2 = st.columns(2)
+    c1.metric("Available Balance", "$120.45", "+$15.20")
+    c2.metric("Total Impressions", "8.5K")
     
     st.markdown(f"""
-        <div class="bank-card">
-        <h3>🏦 Verified Bank Account</h3>
+        <div class="bank-info">
+        <h3 style='color:#00c6ff;'>🏦 Connected Bank Account</h3>
         <p><strong>Account Holder:</strong> MD SOHEL RANA</p>
-        <p><strong>Bank Name:</strong> Clear Bank</p>
-        <p><strong>Location:</strong> London, United Kingdom (GB)</p>
-        <p><strong>Status:</strong> Connected ✅</p>
+        <p><strong>Bank:</strong> Clear Bank, London</p>
+        <p><strong>Country:</strong> United Kingdom (GB)</p>
+        <p><strong>Verification:</strong> Level 3 Global ✅</p>
         </div>
     """, unsafe_allow_html=True)
     
-    st.write("")
-    if st.button("Withdraw Funds to Bank"):
-        st.warning("Minimum withdrawal amount is $200. You are $79.55 away.")
+    if st.button("Withdraw Funds"):
+        st.warning("Withdrawal request sent to Clear Bank. Minimum threshold for first payout is $200.")
