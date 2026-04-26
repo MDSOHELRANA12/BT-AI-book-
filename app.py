@@ -3,15 +3,13 @@ from supabase import create_client
 import uuid
 import streamlit.components.v1 as components
 
-# --- ১. হাই-স্পিড গ্লোবাল সার্ভার কানেকশন ---
+# --- ১. হাই-স্পিড সার্ভার কানেকশন ---
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
-# --- ২. পেইজ সেটআপ ---
-st.set_page_config(page_title="BT-AI Global World", layout="wide")
-
-# --- ৩. পাওয়ারফুল ডার্ক গোল্ড ডিজাইন ---
+# --- ২. গ্লোবাল ডিজাইন সেটআপ ---
+st.set_page_config(page_title="BT-AI World Engine", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -30,17 +28,17 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# অ্যাড ও লিঙ্কস (আপনার দেওয়া আগের গুলোই আছে)
+# --- ৩. আপনার দেওয়া অ্যাড ও লিঙ্কস ---
 ad_1 = """<script type="text/javascript">atOptions = {'key' : '342950879f2064f7255ad047622381c8','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};</script><script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>"""
 ad_2 = """<script type="text/javascript">atOptions = {'key' : '5327bebb34c787d2ccfb1c36bcfa9d6e','format' : 'iframe','height' : 250,'width' : 300,'params' : {}};</script><script src="https://www.highperformanceformat.com/5327bebb34c787d2ccfb1c36bcfa9d6e/invoke.js"></script>"""
+
 d_link_1 = "https://www.profitablecpmratenetwork.com/krgreepsz8?key=08a0fdc6d7ed4f33a60d1f4910ec27c5"
 d_link_2 = "https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521"
 
 # --- ৪. ইউজার সেশন ---
-if 'user' not in st.session_state:
-    st.session_state.user = None
+if 'user' not in st.session_state: st.session_state.user = None
 
-st.sidebar.title("👤 Global Identity")
+st.sidebar.title("👤 Profile Control")
 if not st.session_state.user:
     u_name = st.sidebar.text_input("Enter Your Name")
     if st.sidebar.button("Join World"):
@@ -52,14 +50,13 @@ else:
         st.session_state.user = None
         st.rerun()
 
-# --- ৫. মেইন মেনু ---
-menu = ["🌍 World Feed", "📤 Upload Video", "👤 My Profile", "💰 Earnings"]
-choice = st.selectbox("Switch View", menu)
+# --- ৫. মেইন ন্যাভিগেশন ---
+choice = st.selectbox("Switch View", ["🌍 World Feed", "📤 Upload Video", "👤 My Profile"])
 
-# --- ৬. ওয়ার্ল্ড ফিড (অ্যালগরিদম ফিক্সড) ---
+# --- ৬. ওয়ার্ল্ড ফিড (ব্যানার ও বাটন ফিক্সড) ---
 if choice == "🌍 World Feed":
-    st.title("🌎 Trending Globally")
-    components.html(ad_1, height=70)
+    st.title("🌎 Global Trending")
+    components.html(ad_1, height=70) # টপ ব্যানার
     
     try:
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
@@ -71,7 +68,7 @@ if choice == "🌍 World Feed":
                 # ডাইরেক্ট লিঙ্ক বাটন
                 st.markdown(f'<a href="{d_link_1}" target="_blank" class="direct-btn">🚀 Instant Access Offer</a>', unsafe_allow_html=True)
                 
-                # ভিউ কাউন্ট আপডেট
+                # রিয়েল লাইক ও ভিউ কাউন্ট
                 v_id = v['id']
                 v_count = v.get('views', 0) + 1
                 supabase.table("videos").update({"views": v_count}).eq("id", v_id).execute()
@@ -83,65 +80,56 @@ if choice == "🌍 World Feed":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                if st.button(f"Like video", key=f"lk_{v_id}"):
+                if st.button(f"Like This Video", key=f"lk_{v_id}"):
                     supabase.table("videos").update({"likes": v.get('likes', 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
+
+                st.markdown(f'<a href="{d_link_2}" target="_blank" class="direct-btn" style="background:#333;">💎 VIP Direct Link</a>', unsafe_allow_html=True)
                 
+                # ব্যানারের ফাঁকে ফাঁকে অ্যাড
                 if i % 2 == 0:
                     components.html(ad_2, height=270)
+                
                 st.markdown('</div>', unsafe_allow_html=True)
-    except:
-        st.info("ভিডিও লোড হচ্ছে...")
+    except: st.info("ভিডিও লোড হচ্ছে...")
 
-# --- ৭. ভিডিও আপলোড (মেইন ফিক্স - রিয়েল সিস্টেম) ---
+# --- ৭. ভিডিও আপলোড (এরর-প্রুফ সিস্টেম) ---
 elif choice == "📤 Upload Video":
-    st.title("📤 Publish Globally")
+    st.title("📤 Publish to World")
     if st.session_state.user:
-        uploaded_file = st.file_uploader("Select Video File (MP4)", type=['mp4'])
+        uploaded_file = st.file_uploader("Select MP4 Video", type=['mp4'])
         if st.button("🚀 Publish Now") and uploaded_file:
-            with st.spinner("Broadcasting to Global Servers..."):
+            with st.spinner("Broadcasting..."):
                 try:
-                    # ফাইল ডাটা রিড করা
-                    file_bytes = uploaded_file.getvalue()
-                    file_name = f"{uuid.uuid4()}.mp4"
+                    f_bytes = uploaded_file.getvalue()
+                    f_name = f"{uuid.uuid4()}.mp4"
                     
-                    # ১. স্টোরেজে আপলোড
-                    storage_res = supabase.storage.from_("videos").upload(
-                        path=file_name,
-                        file=file_bytes,
-                        file_options={"content-type": "video/mp4"}
-                    )
+                    # ১. স্টোরেজ আপলোড
+                    supabase.storage.from_("videos").upload(path=f_name, file=f_bytes, file_options={"content-type": "video/mp4"})
+                    p_url = supabase.storage.from_("videos").get_public_url(f_name)
                     
-                    # ২. পাবলিক ইউআরএল জেনারেট
-                    p_url = supabase.storage.from_("videos").get_public_url(file_name)
-                    
-                    # ৩. ডাটাবেসে সেভ (কলামের নামগুলো আপনার টেবিলের সাথে মিলিয়ে নিন)
+                    # ২. ডাটাবেসে সেভ (সবচেয়ে সেফ মেথড - কোনো ঝামেলার কলাম নেই)
+                    # আপনার টেবিলে uploader_name না থাকলেও এটি কাজ করবে
                     supabase.table("videos").insert({
                         "video_url": p_url,
-                        "uploader_name": st.session_state.user,
                         "views": 0,
                         "likes": 0
                     }).execute()
                     
-                    st.success("ভিডিওটি এখন সারা বিশ্বের কাছে পৌঁছে গেছে!")
+                    st.success("ভিডিওটি সফলভাবে আপলোড হয়েছে!")
                     st.balloons()
                 except Exception as e:
-                    st.error(f"আপলোড এরর: {e}. নিশ্চিত করুন আপনার Supabase-এ 'videos' নামে Bucket এবং Table আছে।")
-    else:
-        st.warning("আগে প্রোফাইল সেট করে নিন।")
+                    st.error(f"আপলোড আটকে গেছে: {e}")
+    else: st.warning("আগে প্রোফাইল সেট করে নিন।")
 
-# --- ৮. প্রোফাইল ও আর্নিং ---
+# --- ৮. ১ নম্বর প্রোফাইল ডিজাইন ---
 elif choice == "👤 My Profile":
-    st.title("👤 My Global ID")
+    st.title("👤 Global Identity")
     if st.session_state.user:
         st.markdown(f"""
-        <div style="padding:40px; border:2px solid red; border-radius:20px; text-align:center; background:#111;">
-            <h1 style="color:red;">{st.session_state.user}</h1>
-            <p>Verified World Admin | Global Reach Active</p>
+        <div style="padding:40px; border:3px solid red; border-radius:25px; text-align:center; background:#111;">
+            <h1 style="color:red; font-size:50px;">{st.session_state.user}</h1>
+            <p style="font-size:20px;"><b>Verified BT-AI Admin</b></p>
+            <p>আপনার প্রোফাইল এখন সারা বিশ্বে লাইভ।</p>
         </div>
         """, unsafe_allow_html=True)
-    else: st.info("আপনার প্রোফাইল দেখতে জয়েন করুন।")
-
-elif choice == "💰 Earnings":
-    st.title("💰 Revenue Dashboard")
-    st.metric("Global Balance", "$0.00", "+$0.00 today")
