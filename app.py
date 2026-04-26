@@ -8,9 +8,14 @@ URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
-# --- ২. গ্লোবাল ডিজাইন সেটআপ ---
+# --- ২. গ্লোবাল ডিজাইন ও গুগল এডসেন্স সেটআপ ---
 st.set_page_config(page_title="BT-AI World Engine", layout="wide")
+
+# এখানে আপনার গুগল এডসেন্স কোডটি বসানো হয়েছে
 st.markdown("""
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1831608481745604"
+     crossorigin="anonymous"></script>
+    
     <style>
     .stApp { background-color: #000; color: #fff; }
     .video-card { 
@@ -53,7 +58,7 @@ else:
 # --- ৫. মেইন ন্যাভিগেশন ---
 choice = st.selectbox("Switch View", ["🌍 World Feed", "📤 Upload Video", "👤 My Profile"])
 
-# --- ৬. ওয়ার্ল্ড ফিড (ব্যানার ও বাটন ফিক্সড) ---
+# --- ৬. ওয়ার্ল্ড ফিড ---
 if choice == "🌍 World Feed":
     st.title("🌎 Global Trending")
     components.html(ad_1, height=70) # টপ ব্যানার
@@ -68,7 +73,7 @@ if choice == "🌍 World Feed":
                 # ডাইরেক্ট লিঙ্ক বাটন
                 st.markdown(f'<a href="{d_link_1}" target="_blank" class="direct-btn">🚀 Instant Access Offer</a>', unsafe_allow_html=True)
                 
-                # রিয়েল লাইক ও ভিউ কাউন্ট
+                # ভিউ ও লাইক আপডেট
                 v_id = v['id']
                 v_count = v.get('views', 0) + 1
                 supabase.table("videos").update({"views": v_count}).eq("id", v_id).execute()
@@ -86,14 +91,13 @@ if choice == "🌍 World Feed":
 
                 st.markdown(f'<a href="{d_link_2}" target="_blank" class="direct-btn" style="background:#333;">💎 VIP Direct Link</a>', unsafe_allow_html=True)
                 
-                # ব্যানারের ফাঁকে ফাঁকে অ্যাড
                 if i % 2 == 0:
                     components.html(ad_2, height=270)
                 
                 st.markdown('</div>', unsafe_allow_html=True)
     except: st.info("ভিডিও লোড হচ্ছে...")
 
-# --- ৭. ভিডিও আপলোড (এরর-প্রুফ সিস্টেম) ---
+# --- ৭. ভিডিও আপলোড ---
 elif choice == "📤 Upload Video":
     st.title("📤 Publish to World")
     if st.session_state.user:
@@ -103,26 +107,22 @@ elif choice == "📤 Upload Video":
                 try:
                     f_bytes = uploaded_file.getvalue()
                     f_name = f"{uuid.uuid4()}.mp4"
-                    
-                    # ১. স্টোরেজ আপলোড
                     supabase.storage.from_("videos").upload(path=f_name, file=f_bytes, file_options={"content-type": "video/mp4"})
                     p_url = supabase.storage.from_("videos").get_public_url(f_name)
                     
-                    # ২. ডাটাবেসে সেভ (সবচেয়ে সেফ মেথড - কোনো ঝামেলার কলাম নেই)
-                    # আপনার টেবিলে uploader_name না থাকলেও এটি কাজ করবে
                     supabase.table("videos").insert({
                         "video_url": p_url,
                         "views": 0,
                         "likes": 0
                     }).execute()
                     
-                    st.success("ভিডিওটি সফলভাবে আপলোড হয়েছে!")
+                    st.success("সফলভাবে আপলোড হয়েছে!")
                     st.balloons()
                 except Exception as e:
                     st.error(f"আপলোড আটকে গেছে: {e}")
     else: st.warning("আগে প্রোফাইল সেট করে নিন।")
 
-# --- ৮. ১ নম্বর প্রোফাইল ডিজাইন ---
+# --- ৮. প্রোফাইল ডিজাইন ---
 elif choice == "👤 My Profile":
     st.title("👤 Global Identity")
     if st.session_state.user:
@@ -131,5 +131,6 @@ elif choice == "👤 My Profile":
             <h1 style="color:red; font-size:50px;">{st.session_state.user}</h1>
             <p style="font-size:20px;"><b>Verified BT-AI Admin</b></p>
             <p>আপনার প্রোফাইল এখন সারা বিশ্বে লাইভ।</p>
+            <p style="font-size:12px; color:gray;">Google Ads Status: Active (ca-pub-1831608481745604)</p>
         </div>
         """, unsafe_allow_html=True)
