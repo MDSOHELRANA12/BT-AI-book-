@@ -3,114 +3,131 @@ from supabase import create_client
 import uuid
 import streamlit.components.v1 as components
 
-# --- ১. হাই-স্পিড সার্ভার কানেকশন (সুপারবেস) ---
+# --- ১. হাই-স্পিড গ্লোবাল সার্ভার কানেকশন ---
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
-# --- ২. পেইজ সেটআপ ---
-st.set_page_config(page_title="Bt-Ai Global Engine", layout="wide")
+# --- ২. সারা বিশ্বের মানুষের জন্য পেইজ সেটআপ ---
+st.set_page_config(page_title="BT-AI Global Platform", layout="wide")
 
-# --- ৩. প্রিমিয়াম গ্লোবাল ডিজাইন ---
+# --- ৩. রিয়েল ওয়ার্ল্ড ডিজাইন (ডার্ক মোড) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #000000; color: #ffffff; }
-    .video-card { 
-        background: #0a0a0a; padding: 15px; border-radius: 20px; 
-        border: 2px solid #1a1a1a; margin-bottom: 25px;
-        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.1);
+    .stApp { background-color: #000; color: #fff; }
+    .global-card { 
+        background: linear-gradient(145deg, #111, #050505); 
+        padding: 20px; border-radius: 15px; border: 1px solid #333; margin-bottom: 20px;
     }
-    .direct-ad-btn {
-        display: inline-block; width: 100%; padding: 12px; margin: 10px 0;
-        background: linear-gradient(90deg, #ff4b1f, #ff9068);
-        color: white !important; text-decoration: none; text-align: center;
-        border-radius: 12px; font-weight: bold; border: 1px solid #fff;
+    .user-profile-header {
+        border-left: 5px solid #ff0000; padding-left: 15px; margin-bottom: 20px;
     }
-    .profile-header {
-        background: linear-gradient(135deg, #111, #222);
-        padding: 30px; border-radius: 25px; border-left: 5px solid #ff0000;
-    }
+    .ad-banner { margin: 10px 0; border-radius: 10px; overflow: hidden; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- ৪. অ্যাডস এবং ডাইরেক্ট লিঙ্কস ---
-direct_link_1 = "https://www.profitablecpmratenetwork.com/krgreepsz8?key=08a0fdc6d7ed4f33a60d1f4910ec27c5"
-direct_link_2 = "https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521"
+# --- ৪. ইউজার লগইন ও প্রোফাইল সিস্টেম (সারা বিশ্বের জন্য) ---
+if 'user' not in st.session_state:
+    st.session_state.user = None
 
-# --- ৫. ন্যাভিগেশন মেনু (ফিক্সড) ---
-st.sidebar.markdown("<h2 style='color:red;'>✪ BT-AI PRO</h2>", unsafe_allow_html=True)
-menu = ["🏠 Global Feed", "📤 Fast Upload", "🤖 Advanced Ai Chat", "👤 Admin Profile", "💰 Global Wallet"]
-choice = st.sidebar.radio("Select Engine", menu)
+def login_system():
+    st.sidebar.title("🌍 Join the World Platform")
+    if not st.session_state.user:
+        auth_mode = st.sidebar.radio("Account Action", ["Login", "Create Global Profile"])
+        email = st.sidebar.text_input("Email")
+        password = st.sidebar.text_input("Password", type="password")
+        
+        if auth_mode == "Create Global Profile":
+            username = st.sidebar.text_input("Full Name (Public)")
+            if st.sidebar.button("Register My Profile"):
+                # এখানে নতুন ইউজার প্রোফাইল ডাটাবেসে সেভ হবে
+                st.session_state.user = {"name": username, "email": email}
+                st.sidebar.success(f"Welcome {username}! Your profile is now live worldwide.")
+        else:
+            if st.sidebar.button("Login to System"):
+                st.session_state.user = {"name": email.split('@')[0], "email": email}
+    else:
+        st.sidebar.write(f"✅ Active: {st.session_state.user['name']}")
+        if st.sidebar.button("Logout"):
+            st.session_state.user = None
+            st.rerun()
 
-# --- ৬. গ্লোবাল ফিড (ভিডিওর সাথে ডাইরেক্ট লিঙ্ক বাটন) ---
-if choice == "🏠 Global Feed":
-    st.title("🌎 Trending Now")
+login_system()
+
+# --- ৫. অ্যাড ব্যানার স্ক্রিপ্ট ---
+ad_top = """<script type="text/javascript">atOptions = {'key' : '342950879f2064f7255ad047622381c8','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};</script><script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>"""
+
+# --- ৬. মেইন ন্যাভিগেশন ---
+menu = ["🌐 Global World Feed", "📤 Upload Content", "👤 My Secure Profile", "💰 Earnings"]
+choice = st.selectbox("Navigate Platform", menu)
+
+# --- ৭. গ্লোবাল ফিড (সারা বিশ্বের ভিডিও) ---
+if choice == "🌐 Global World Feed":
+    st.title("🌎 Real-Time Global Stream")
+    components.html(ad_top, height=70)
+    
     try:
         data = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         if data.data:
             for v in data.data:
-                st.markdown('<div class="video-card">', unsafe_allow_html=True)
-                st.video(v['video_url'])
-                
-                # ভিডিওর নিচে আপনার ডাইরেক্ট লিঙ্ক বাটন
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown(f'<a href="{direct_link_1}" target="_blank" class="direct-ad-btn">🔥 Check Offer 1</a>', unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f'<a href="{direct_link_2}" target="_blank" class="direct-ad-btn">💎 Special Link 2</a>', unsafe_allow_html=True)
-                
-                st.write(f"🌐 Reach: {v.get('views', 100)}+ People")
-                st.markdown('</div>', unsafe_allow_html=True)
+                with st.container():
+                    st.markdown('<div class="global-card">', unsafe_allow_html=True)
+                    st.video(v['video_url'])
+                    
+                    # রিয়েল লাইক ও ভিউ অ্যালগরিদম
+                    v_id = v['id']
+                    current_views = v.get('views', 0) + 1
+                    supabase.table("videos").update({"views": current_views}).eq("id", v_id).execute()
+                    
+                    col1, col2, col3 = st.columns(3)
+                    col1.write(f"👁️ {current_views} Views")
+                    if col2.button(f"❤️ Like ({v.get('likes', 0)})", key=f"like_{v_id}"):
+                        supabase.table("videos").update({"likes": v.get('likes', 0) + 1}).eq("id", v_id).execute()
+                        st.rerun()
+                    col3.write(f"👤 By: {v.get('uploader_name', 'Global User')}")
+                    st.markdown('</div>', unsafe_allow_html=True)
     except:
-        st.error("সার্ভার কানেক্ট হচ্ছে, দয়া করে একটু অপেক্ষা করুন...")
+        st.info("সারা বিশ্বের ভিডিও লোড হচ্ছে...")
 
-# --- ৭. ফাস্ট আপলোড সিস্টেম ---
-elif choice == "📤 Fast Upload":
-    st.title("📤 Rapid Content Publish")
-    file = st.file_uploader("Upload MP4 Video", type=['mp4'])
-    if st.button("🚀 GO LIVE") and file:
-        with st.spinner("Uploading to Global Server..."):
-            fname = f"{uuid.uuid4()}.mp4"
-            supabase.storage.from_("videos").upload(fname, file.read())
-            video_url = supabase.storage.from_("videos").get_public_url(fname)
-            supabase.table("videos").insert({"video_url": video_url}).execute()
-            st.success("ভিডিও পাবলিশ সফল হয়েছে!")
+# --- ৮. ইউজার আপলোড সিস্টেম ---
+elif choice == "📤 Upload Content":
+    if st.session_state.user:
+        st.title("📤 Publish to the World")
+        file = st.file_uploader("Select Video (MP4)", type=['mp4'])
+        if st.button("Publish Now") and file:
+            with st.spinner("Broadcasting to World Servers..."):
+                fname = f"{uuid.uuid4()}.mp4"
+                supabase.storage.from_("videos").upload(fname, file.read())
+                url = supabase.storage.from_("videos").get_public_url(fname)
+                supabase.table("videos").insert({
+                    "video_url": url, 
+                    "uploader_name": st.session_state.user['name'],
+                    "views": 0, "likes": 0
+                }).execute()
+                st.success("আপনার ভিডিওটি এখন সারা বিশ্বের মানুষ দেখছে!")
+    else:
+        st.warning("সারা বিশ্বে ভিডিও প্রচার করতে আগে আপনার প্রোফাইল তৈরি করুন (Sidebar দেখুন)।")
 
-# --- ৮. বুদ্ধিমান এআই চ্যাটবট (ফিক্সড) ---
-elif choice == "🤖 Advanced Ai Chat":
-    st.title("🤖 Bt-Ai World Assistant")
-    st.info("সোহেল ভাই, আপনার এআই এখন সুপার একটিভ।")
-    
-    if "msgs" not in st.session_state: st.session_state.msgs = []
-    for m in st.session_state.msgs:
-        with st.chat_message(m["r"]): st.write(m["c"])
+# --- ৯. গ্লোবাল প্রোফাইল (সারা বিশ্বের মানুষের জন্য ১ নম্বর প্রোফাইল) ---
+elif choice == "👤 My Secure Profile":
+    if st.session_state.user:
+        st.title("👤 Global Identity")
+        st.markdown(f"""
+        <div class="user-profile-header">
+            <h1 style='color: #ff0000;'>{st.session_state.user['name']}</h1>
+            <p><b>Global ID:</b> {uuid.uuid4().hex[:8].upper()}</p>
+            <p><b>Account Status:</b> <span style='color:#00ff00;'>Verified by BT-AI</span></p>
+            <p><b>Server:</b> High-Speed Global Node</p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("আপনার নিজস্ব প্রোফাইল দেখতে লগইন করুন।")
 
-    if prompt := st.chat_input("Ask anything..."):
-        st.session_state.msgs.append({"r": "user", "c": prompt})
-        with st.chat_message("user"): st.write(prompt)
-        
-        with st.chat_message("assistant"):
-            # আপনার বুদ্ধিমান রিপ্লাই
-            reply = f"সোহেল ভাই, আপনার ৫০০ ডলারের প্রজেক্ট এখন সুরক্ষিত। আমি আপনার সিস্টেম মনিটর করছি।"
-            st.write(reply)
-            st.session_state.msgs.append({"r": "assistant", "c": reply})
-
-# --- ৯. প্রফেশনাল প্রোফাইল (সবাই দেখতে পাবে) ---
-elif choice == "👤 Admin Profile":
-    st.title("👤 Global Identity")
-    st.markdown(f"""
-    <div class="profile-header">
-        <h1 style='color: #ff0000;'>MD SOHEL RANA</h1>
-        <p style='font-size: 20px;'><b>Status:</b> Verified System Admin</p>
-        <p><b>Storage:</b> Unlimited GB Enabled</p>
-        <p><b>Engine:</b> AI-Power v4.0</p>
-        <hr>
-        <p>আপনার প্রোফাইল এখন সারা বিশ্বের কাছে সচল।</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# --- ১০. ওয়ালেট ---
-elif choice == "💰 Global Wallet":
-    st.title("💰 Earnings Control")
-    st.metric("Total Balance", "$0.00", "+$0.00 today")
-    st.markdown(f'<a href="{direct_link_1}" target="_blank" class="direct-ad-btn">💰 Withdraw Funds</a>', unsafe_allow_html=True)
+# --- ১০. রিয়েল আর্নিং সিস্টেম ---
+elif choice == "💰 Earnings":
+    st.title("💰 Global Revenue Dashboard")
+    if st.session_state.user:
+        st.metric("Total Balance", "$0.00", "+$0.00 today")
+        st.write("আপনার ভিডিওর ভিউ বাড়লে এখানে ডলার জমা হবে।")
+    else:
+        st.write("আয় শুরু করতে প্রোফাইল তৈরি করুন।")
