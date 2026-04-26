@@ -122,4 +122,3 @@ elif choice == "💰 Bank & Ads":
     st.title("💰 Revenue Center")
     st.metric("Total Balance", "$120.45", "+$15.20 Today")
     st.markdown("🏦 **Bank:** Clear Bank, London | **Status:** Connected ✅")
-import
