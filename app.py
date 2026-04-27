@@ -1,58 +1,42 @@
 import streamlit as st
 from supabase import create_client
 import uuid
-import streamlit.components.v1 as components
 
-# --- ১. হাই-স্পিড সার্ভার কানেকশন ---
+# --- ১. কানেকশন ---
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
-# --- ২. গ্লোবাল ডিজাইন ও গুগল এডসেন্স সেটআপ ---
+# --- ২. কনফিগারেশন ও পুরোপুরি হাইড করার CSS ---
 st.set_page_config(page_title="BT-AI World Engine", layout="wide")
 
 st.markdown("""
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1831608481745604"
-     crossorigin="anonymous"></script>
-    
     <style>
-    /* ১. কিতাব (GitHub) এবং পেন্সিল (Edit) আইকন দেখাবে কিন্তু ক্লিক করা যাবে না */
-    header .st-emotion-cache-12fmjuu, /* GitHub container */
-    header .st-emotion-cache-15z7m3b, /* Edit container */
-    button[title="View source"], 
-    button[title="Edit this app"],
-    a[href*="github.com"] {
-        pointer-events: none !important; /* ক্লিক নিষ্ক্রিয় */
-        cursor: default !important;
-        opacity: 0.5 !important; /* হালকা ঝাপসা দেখাবে */
+    /* উপরের সব আইকন এবং মেনু পুরোপুরি মুছে ফেলার জন্য */
+    header, [data-testid="stHeader"] {
+        visibility: hidden !important;
+        height: 0px !important;
     }
     
-    /* ২. স্টার (Star) আইকন পুরোপুরি সচল থাকবে */
-    header .st-emotion-cache-10940p5 { 
-        display: inline-flex !important; 
-        pointer-events: auto !important;
-        opacity: 1 !important;
-    }
-
-    footer {visibility: hidden !important;} 
+    /* সাইডবারের বাড়তি জিনিস থাকলে সেগুলোও বন্ধ হবে */
+    [data-testid="stSidebarNav"] {display: none !important;}
     
+    /* ফুটার বা নিচের লেখা লুকানোর জন্য */
+    footer {visibility: hidden !important;}
+    
+    /* অ্যাপের মূল ডিজাইন */
     .stApp { background-color: #000; color: #fff; }
+    
     .video-card { 
         background: #0d0d0d; border: 2px solid #1a1a1a; 
         border-radius: 20px; padding: 20px; margin-bottom: 30px;
-        box-shadow: 0 4px 20px rgba(255, 0, 0, 0.1);
     }
-    .direct-btn {
-        display: block; width: 100%; padding: 15px; margin: 10px 0;
-        background: linear-gradient(90deg, #ff0000, #990000);
-        color: white !important; text-align: center; border-radius: 12px;
-        font-weight: bold; text-decoration: none; border: 1px solid #fff;
-    }
+    
     .stats-row { display: flex; justify-content: space-around; padding: 10px; background: #111; border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- বাকি কোড (যা আছে তাই থাকবে) ---
+# --- বাকি ফাংশনাল কোড ---
 if 'user' not in st.session_state: st.session_state.user = None
 
 st.sidebar.title("👤 Profile Control")
@@ -74,13 +58,10 @@ if choice == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         if res.data:
-            for i, v in enumerate(res.data):
+            for v in res.data:
                 st.markdown('<div class="video-card">', unsafe_allow_html=True)
                 st.video(v['video_url'])
-                v_id = v['id']
-                v_count = v.get('views', 0) + 1
-                supabase.table("videos").update({"views": v_count}).eq("id", v_id).execute()
-                st.markdown(f'<div class="stats-row"><span>👁️ {v_count} Views</span><span style="color:red; font-weight:bold;">❤️ {v.get('likes', 0)} Likes</span></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="stats-row"><span>👁️ {v.get("views", 0)} Views</span><span style="color:red; font-weight:bold;">❤️ {v.get("likes", 0)} Likes</span></div>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
     except: st.info("ভিডিও লোড হচ্ছে...")
 
