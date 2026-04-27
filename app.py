@@ -16,16 +16,15 @@ st.markdown("""
      crossorigin="anonymous"></script>
     
     <style>
-    /* ১. গিটহাব লোগো/মেনু হাইড করার জন্য */
+    /* ১. গিটহাবের লোগো এবং বাড়তি মেনু মুছে ফেলার জন্য */
     .viewerBadge_container__1QS1n {display: none !important;}
     #MainMenu {visibility: hidden !important;}
     
-    /* ২. নিচের লোগো বা ফুটার হাইড করার জন্য */
+    /* ২. নিচের লোগো বা ফুটার মুছে ফেলার জন্য */
     footer {visibility: hidden !important;}
     
-    /* ৩. বাকি সেটিংস এবং আই কার্ড অপশনগুলো খোলা থাকবে */
+    /* ৩. বাকি ডিজাইন যেমন ছিল তেমনই থাকবে */
     .stApp { background-color: #000; color: #fff; }
-    
     .video-card { 
         background: #0d0d0d; border: 2px solid #1a1a1a; 
         border-radius: 20px; padding: 20px; margin-bottom: 30px;
