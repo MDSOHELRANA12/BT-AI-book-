@@ -16,14 +16,14 @@ st.markdown("""
      crossorigin="anonymous"></script>
     
     <style>
-    /* ১. গিটহাবের লোগো এবং বাড়তি মেনু মুছে ফেলার জন্য */
-    .viewerBadge_container__1QS1n {display: none !important;}
-    #MainMenu {visibility: hidden !important;}
+    /* ১. শুধুমাত্র গিটহাব (কিতাব) এবং পেন্সিল আইকন হাইড করার জন্য */
+    .viewerBadge_container__1QS1n {display: none !important;} /* কিতাব আইকন */
+    button[title="View source"] {display: none !important;}   /* সোর্স কোড আইকন */
+    button[title="Edit this app"] {display: none !important;} /* পেন্সিল আইকন */
     
-    /* ২. নিচের লোগো বা ফুটার মুছে ফেলার জন্য */
-    footer {visibility: hidden !important;}
+    /* ২. বাকি সব (তীর চিহ্ন, স্টার, সেটিংস) খোলা থাকবে */
+    footer {visibility: hidden !important;} /* নিচের বাড়তি লেখা হাইড */
     
-    /* ৩. বাকি ডিজাইন যেমন ছিল তেমনই থাকবে */
     .stApp { background-color: #000; color: #fff; }
     .video-card { 
         background: #0d0d0d; border: 2px solid #1a1a1a; 
@@ -122,6 +122,7 @@ elif choice == "📤 Upload Video":
                     }).execute()
                     
                     st.success("সফলভাবে আপলোড হয়েছে!")
+                    st.balloons()
                 except Exception as e:
                     st.error(f"আপলোড আটকে গেছে: {e}")
     else: st.warning("আগে প্রোফাইল সেট করে নিন।")
