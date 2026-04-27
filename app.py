@@ -16,17 +16,22 @@ st.markdown("""
      crossorigin="anonymous"></script>
     
     <style>
-    /* ১. শুধুমাত্র গিটহাব (কিতাব) এবং পেন্সিল আইকন মুছে ফেলার জন্য */
-    header .st-emotion-cache-12fmjuu, /* GitHub icon container */
-    header .st-emotion-cache-15z7m3b, /* Edit icon container */
+    /* ১. কিতাব (GitHub) এবং পেন্সিল (Edit) আইকন দেখাবে কিন্তু ক্লিক করা যাবে না */
+    header .st-emotion-cache-12fmjuu, /* GitHub container */
+    header .st-emotion-cache-15z7m3b, /* Edit container */
     button[title="View source"], 
-    button[title="Edit this app"] {
-        display: none !important;
+    button[title="Edit this app"],
+    a[href*="github.com"] {
+        pointer-events: none !important; /* ক্লিক নিষ্ক্রিয় */
+        cursor: default !important;
+        opacity: 0.5 !important; /* হালকা ঝাপসা দেখাবে */
     }
     
-    /* ২. স্টার (Star) আইকন এবং বাকি সব ঠিক থাকবে */
+    /* ২. স্টার (Star) আইকন পুরোপুরি সচল থাকবে */
     header .st-emotion-cache-10940p5 { 
         display: inline-flex !important; 
+        pointer-events: auto !important;
+        opacity: 1 !important;
     }
 
     footer {visibility: hidden !important;} 
@@ -47,7 +52,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- বাকি কোড (যথাযথ আছে) ---
+# --- বাকি কোড (যা আছে তাই থাকবে) ---
 if 'user' not in st.session_state: st.session_state.user = None
 
 st.sidebar.title("👤 Profile Control")
