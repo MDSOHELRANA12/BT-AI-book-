@@ -3,20 +3,32 @@ from supabase import create_client
 import uuid
 import streamlit.components.v1 as components
 
-# --- ১. হাই-স্পিড সার্ভার কানেকশন ---
+# --- ১. হাই-স্পিড সার্ভার কানেকশন (অপরিবর্তিত) ---
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
-# --- ২. গ্লোবাল ডিজাইন ও গুগল এডসেন্স সেটআপ ---
-st.set_page_config(page_title="BT-AI World Engine", layout="wide")
+# --- ২. গ্লোবাল ডিজাইন ও সিকিউরিটি আপডেট ---
+# menu_items=None দিলে ওপরের বাড়তি অপশনগুলো বন্ধ হয়ে যাবে
+st.set_page_config(
+    page_title="BT-AI World Engine", 
+    layout="wide",
+    initial_sidebar_state="collapsed",
+    menu_items=None
+)
 
-# এখানে আপনার গুগল এডসেন্স কোডটি বসানো হয়েছে
+# এখানে আপনার গুগল এডসেন্স ঠিক রাখা হয়েছে এবং বাড়তি আইকন সরানোর কোড যোগ করা হয়েছে
 st.markdown("""
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1831608481745604"
      crossorigin="anonymous"></script>
     
     <style>
+    /* এই অংশটি গিটহাব আইকন এবং ওপরের সাদা বারটি মুছে ফেলবে */
+    header {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .viewerBadge_container__1QS1n {display: none;}
+    
     .stApp { background-color: #000; color: #fff; }
     .video-card { 
         background: #0d0d0d; border: 2px solid #1a1a1a; 
@@ -33,7 +45,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- ৩. আপনার দেওয়া অ্যাড ও লিঙ্কস ---
+# --- ৩. আপনার দেওয়া অ্যাড ও লিঙ্কস (অপরিবর্তিত) ---
 ad_1 = """<script type="text/javascript">atOptions = {'key' : '342950879f2064f7255ad047622381c8','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};</script><script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>"""
 ad_2 = """<script type="text/javascript">atOptions = {'key' : '5327bebb34c787d2ccfb1c36bcfa9d6e','format' : 'iframe','height' : 250,'width' : 300,'params' : {}};</script><script src="https://www.highperformanceformat.com/5327bebb34c787d2ccfb1c36bcfa9d6e/invoke.js"></script>"""
 
@@ -58,7 +70,7 @@ else:
 # --- ৫. মেইন ন্যাভিগেশন ---
 choice = st.selectbox("Switch View", ["🌍 World Feed", "📤 Upload Video", "👤 My Profile"])
 
-# --- ৬. ওয়ার্ল্ড ফিড ---
+# --- ৬. ওয়ার্ল্ড ফিড (আপনার সব সেটিংস ঠিক আছে) ---
 if choice == "🌍 World Feed":
     st.title("🌎 Global Trending")
     components.html(ad_1, height=70) # টপ ব্যানার
