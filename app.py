@@ -22,7 +22,7 @@ st.markdown("""
         border-radius: 20px; padding: 20px; margin-bottom: 30px;
         box-shadow: 0 4px 20px rgba(255, 0, 0, 0.1);
     }
-    .uploader-name { color: #ff0000; font-weight: bold; font-size: 16px; margin-bottom: 5px; }
+    .uploader-name { color: #ff0000; font-weight: bold; font-size: 16px; margin-bottom: 8px; }
     .direct-btn {
         display: block; width: 100%; padding: 15px; margin: 10px 0;
         background: linear-gradient(90deg, #ff0000, #990000);
@@ -33,7 +33,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- ৩. আপনার দেওয়া অ্যাড ও লিঙ্কস ---
+# --- ৩. অ্যাড ও লিঙ্কস ---
 ad_1 = """<script type="text/javascript">atOptions = {'key' : '342950879f2064f7255ad047622381c8','format' : 'iframe','height' : 50,'width' : 320,'params' : {}};</script><script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>"""
 ad_2 = """<script type="text/javascript">atOptions = {'key' : '5327bebb34c787d2ccfb1c36bcfa9d6e','format' : 'iframe','height' : 250,'width' : 300,'params' : {}};</script><script src="https://www.highperformanceformat.com/5327bebb34c787d2ccfb1c36bcfa9d6e/invoke.js"></script>"""
 
@@ -55,13 +55,13 @@ else:
         st.session_state.user = None
         st.rerun()
 
-# --- ৫. মেইন ন্যাভিগেশন ---
+# --- ৫. ন্যাভিগেশন ---
 choice = st.selectbox("Switch View", ["🌍 World Feed", "📤 Upload Video", "👤 My Profile"])
 
 # --- ৬. ওয়ার্ল্ড ফিড ---
 if choice == "🌍 World Feed":
     st.title("🌎 Global Trending")
-    components.html(ad_1, height=70) # টপ ব্যানার
+    components.html(ad_1, height=70) 
     
     try:
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
@@ -69,18 +69,17 @@ if choice == "🌍 World Feed":
             for i, v in enumerate(res.data):
                 st.markdown('<div class="video-card">', unsafe_allow_html=True)
                 
-                # রিয়েল আপলোডার নাম ভিডিওর উপরে
-                uploader = v.get('uploader_name', 'Global User')
-                st.markdown(f'<div class="uploader-name">👤 {uploader}</div>', unsafe_allow_html=True)
+                # নাম এবং ফলো বাটন
+                up_name = v.get('uploader_name', 'Global User')
+                st.markdown(f'<div class="uploader-name">👤 {up_name}</div>', unsafe_allow_html=True)
                 
                 st.video(v['video_url'])
                 
-                # রিয়েল ফলো বাটন
-                col1, col2 = st.columns([3, 1])
-                with col2:
-                    if st.button(f"Follow", key=f"follow_{v['id']}"):
-                        st.toast(f"Followed {uploader}")
-                
+                col_f1, col_f2 = st.columns([3, 1])
+                with col_f2:
+                    if st.button(f"Follow", key=f"f_{v['id']}"):
+                        st.toast(f"Following {up_name}")
+
                 st.markdown(f'<a href="{d_link_1}" target="_blank" class="direct-btn">🚀 Instant Access Offer</a>', unsafe_allow_html=True)
                 
                 v_id = v['id']
@@ -104,9 +103,9 @@ if choice == "🌍 World Feed":
                     components.html(ad_2, height=270)
                 
                 st.markdown('</div>', unsafe_allow_html=True)
-    except: st.info("ভিডিও লোড হচ্ছে...")
+    except: st.info("লোড হচ্ছে...")
 
-# --- ৭. ভিডিও আপলোড (অটোমেটিক নাম সেভ হবে) ---
+# --- ৭. ভিডিও আপলোড (নাম সহ) ---
 elif choice == "📤 Upload Video":
     st.title("📤 Publish to World")
     if st.session_state.user:
@@ -119,7 +118,6 @@ elif choice == "📤 Upload Video":
                     supabase.storage.from_("videos").upload(path=f_name, file=f_bytes, file_options={"content-type": "video/mp4"})
                     p_url = supabase.storage.from_("videos").get_public_url(f_name)
                     
-                    # uploader_name কলামে ইউজার নেম সেভ হবে
                     supabase.table("videos").insert({
                         "video_url": p_url,
                         "views": 0,
@@ -127,13 +125,13 @@ elif choice == "📤 Upload Video":
                         "uploader_name": st.session_state.user
                     }).execute()
                     
-                    st.success(f"সফলভাবে আপলোড হয়েছে, {st.session_state.user}!")
+                    st.success("সফলভাবে আপলোড হয়েছে!")
                     st.balloons()
                 except Exception as e:
-                    st.error(f"আপলোড আটকে গেছে: {e}")
-    else: st.warning("আগে প্রোফাইল সেট করে নিন।")
+                    st.error(f"এরর: {e}")
+    else: st.warning("আগে প্রোফাইল সেট করুন।")
 
-# --- ৮. প্রোফাইল ডিজাইন ---
+# --- ৮. প্রোফাইল ---
 elif choice == "👤 My Profile":
     st.title("👤 Global Identity")
     if st.session_state.user:
@@ -141,5 +139,6 @@ elif choice == "👤 My Profile":
         <div style="padding:40px; border:3px solid red; border-radius:25px; text-align:center; background:#111;">
             <h1 style="color:red; font-size:50px;">{st.session_state.user}</h1>
             <p style="font-size:20px;"><b>Verified BT-AI Admin</b></p>
+            <p style="font-size:12px; color:gray;">Google Ads Status: Active (ca-pub-1831608481745604)</p>
         </div>
         """, unsafe_allow_html=True)
