@@ -15,7 +15,7 @@ st.markdown("""
     .stApp { background-color: #000; color: #fff; }
     .video-card { 
         background: #0d0d0d; border: 1px solid #333; border-radius: 15px; 
-        padding: 15px; margin-bottom: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        padding: 15px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     .user-avatar { 
         width: 50px; height: 50px; border-radius: 50%; 
@@ -37,6 +37,7 @@ st.markdown("""
         color: white !important; text-align: center; border-radius: 8px; 
         font-weight: bold; text-decoration: none; border: 1px solid rgba(255,255,255,0.2);
     }
+    iframe { border-radius: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -99,12 +100,15 @@ if tab == "🌍 World Feed":
                         st.toast(f"Following {u_name}")
                         st.rerun()
 
-                # --- ব্যানার অ্যাড (ভিডিওর ঠিক ওপরে) ---
+                # --- ব্যানার অ্যাড (সরাসরি ভিডিওর ওপরে লোড হবে) ---
+                # কালো ফ্রেম দূর করতে sandbox এবং সঠিক স্ক্রিপ্ট ব্যবহার করা হয়েছে
                 st.components.v1.html(f"""
-                    <div style="text-align:center; width:100%;">
-                        <script async="async" data-cfasync="false" src="https://pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
+                    <html>
+                    <body style="margin:0; padding:0; background-color:transparent; display:flex; justify-content:center;">
+                        <script async="async" data-cfasync="false" src="//pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
                         <div id="container-3d5c1921120aef030a2a6dd72337ba1d"></div>
-                    </div>
+                    </body>
+                    </html>
                 """, height=260)
 
                 # Video Player
@@ -118,12 +122,12 @@ if tab == "🌍 World Feed":
                     st.rerun()
                 
                 # ডাইরেক্ট লিঙ্কের দুইটা বাটন
-                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" class="btn-revenue">💎 Click to Earn Diamond 1</a>', unsafe_allow_html=True)
-                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" class="btn-revenue-2">💰 Click to Earn Diamond 2</a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-revenue">💎 Click to Earn Diamond 1</a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-revenue-2">💰 Click to Earn Diamond 2</a>', unsafe_allow_html=True)
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    except:
+    except Exception as e:
         st.info("Syncing with Global Server...")
 
 # 5. Secure Video Uploading
