@@ -23,14 +23,19 @@ st.markdown("""
     }
     .username-text { font-weight: bold; font-size: 18px; color: #fff; }
     .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 20px; }
+    
+    /* বাটন ডিজাইন */
     .btn-revenue { 
-        display: block; width: 100%; padding: 14px; margin: 5px 0; 
+        display: block; width: 100%; padding: 14px; margin: 8px 0; 
         background: linear-gradient(135deg, #ed1c24, #aa0000); 
         color: white !important; text-align: center; border-radius: 8px; 
-        font-weight: bold; text-decoration: none;
+        font-weight: bold; text-decoration: none; border: 1px solid rgba(255,255,255,0.2);
     }
-    .follow-btn {
-        background-color: #00ff00; color: #000; border-radius: 20px; padding: 2px 10px; font-weight: bold;
+    .btn-revenue-2 { 
+        display: block; width: 100%; padding: 14px; margin: 8px 0; 
+        background: linear-gradient(135deg, #0056b3, #003d80); 
+        color: white !important; text-align: center; border-radius: 8px; 
+        font-weight: bold; text-decoration: none; border: 1px solid rgba(255,255,255,0.2);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -76,7 +81,7 @@ if tab == "🌍 World Feed":
                 
                 st.markdown('<div class="video-card">', unsafe_allow_html=True)
                 
-                # Profile Header & Follow Button
+                # Profile Header & Follow
                 col_u, col_f = st.columns([4, 1])
                 with col_u:
                     u_pic = v.get('uploader_pic', "https://via.placeholder.com/150")
@@ -89,12 +94,18 @@ if tab == "🌍 World Feed":
                     ''', unsafe_allow_html=True)
                 
                 with col_f:
-                    # রিয়েল ফলো বাটন (ডাটাবেজ আপডেট হবে)
-                    follow_count = v.get('followers', 0)
                     if st.button(f"✚ Follow", key=f"fol_{v['id']}"):
-                        supabase.table("videos").update({"followers": follow_count + 1}).eq("id", v['id']).execute()
+                        supabase.table("videos").update({"followers": v.get('followers', 0) + 1}).eq("id", v['id']).execute()
                         st.toast(f"Following {u_name}")
                         st.rerun()
+
+                # --- ব্যানার অ্যাড (ভিডিওর ঠিক ওপরে) ---
+                st.components.v1.html(f"""
+                    <div style="text-align:center; width:100%;">
+                        <script async="async" data-cfasync="false" src="https://pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
+                        <div id="container-3d5c1921120aef030a2a6dd72337ba1d"></div>
+                    </div>
+                """, height=260)
 
                 # Video Player
                 st.video(v['video_url'])
@@ -106,16 +117,12 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"likes": v.get("likes", 0) + 1}).eq("id", v['id']).execute()
                     st.rerun()
                 
+                # ডাইরেক্ট লিঙ্কের দুইটা বাটন
                 st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" class="btn-revenue">💎 Click to Earn Diamond 1</a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" class="btn-revenue-2">💰 Click to Earn Diamond 2</a>', unsafe_allow_html=True)
+                
                 st.markdown('</div>', unsafe_allow_html=True)
 
-                # --- ক্লিন ব্যানার অ্যাড ---
-                st.components.v1.html(f"""
-                    <div style="text-align:center; margin: 10px 0;">
-                        <script async="async" data-cfasync="false" src="https://pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
-                        <div id="container-3d5c1921120aef030a2a6dd72337ba1d"></div>
-                    </div>
-                """, height=260)
     except:
         st.info("Syncing with Global Server...")
 
@@ -138,5 +145,3 @@ elif tab == "📤 Upload Video":
                     "followers": 0
                 }).execute()
                 st.success("Successfully Published!")
-    else:
-        st.error("Please Setup Your Profile First.")
