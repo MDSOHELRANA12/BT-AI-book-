@@ -2,14 +2,14 @@ import streamlit as st
 from supabase import create_client
 import uuid
 
-# 1. Database Connection
+# ১. ডাটাবেস কানেকশন
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# 2. Optimized CSS
+# ২. স্টাইল এবং ডিজাইন
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -34,23 +34,25 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# 3. Session State
+# ৩. লগইন সেশন
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
 
-# Sidebar
+# সাইডবার
 if not st.session_state.user:
     st.sidebar.header("Login")
     u_name = st.sidebar.text_input("Username")
-    u_pic = st.sidebar.file_uploader("Upload Image", type=['jpg', 'png'])
+    u_pic = st.sidebar.file_uploader("Profile Pic", type=['jpg', 'png'])
     if st.sidebar.button("Enter"):
         if u_name and u_pic:
-            fname = f"profile_{uuid.uuid4()}.jpg"
-            supabase.storage.from_("videos").upload(path=fname, file=u_pic.getvalue())
-            st.session_state.pic = supabase.storage.from_("videos").get_public_url(fname)
-            st.session_state.user = u_name
-            st.rerun()
+            try:
+                fname = f"profile_{uuid.uuid4()}.jpg"
+                supabase.storage.from_("videos").upload(path=fname, file=u_pic.getvalue())
+                st.session_state.pic = supabase.storage.from_("videos").get_public_url(fname)
+                st.session_state.user = u_name
+                st.rerun()
+            except: st.sidebar.error("Connection Error!")
 else:
     st.sidebar.image(st.session_state.pic, width=80)
     st.sidebar.write(f"User: **{st.session_state.user}**")
@@ -60,16 +62,16 @@ else:
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# 4. Feed Section
+# ৪. ভিডিও ফিড এবং অ্যাড
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         data = res.data if res.data else []
 
-        for index, v in enumerate(data):
+        for v in data:
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             
-            # User Header
+            # ইউজার ইনফো
             st.markdown(f'''
                 <div style="display:flex; align-items:center; margin-bottom:10px;">
                     <img src="{v.get('uploader_pic', '')}" class="user-avatar">
@@ -77,68 +79,69 @@ if tab == "🌍 World Feed":
                 </div>
             ''', unsafe_allow_html=True)
 
-            # Video Player
+            # ভিডিও
             st.video(v['video_url'])
             
-            # --- অটোমেটিক ভিউ অ্যালগরিদম ---
-            current_views = v.get("views", 0)
-            supabase.table("videos").update({"views": current_views + 1}).eq("id", v['id']).execute()
+            # --- অটোমেটিক ভিউ বাড়ানো ---
+            v_id = v['id']
+            new_views = v.get("views", 0) + 1
+            try:
+                supabase.table("videos").update({"views": new_views}).eq("id", v_id).execute()
+            except: pass
 
-            # Stats Display
+            # পরিসংখ্যান
             st.markdown(f'''
                 <div style="margin: 10px 0;">
-                    <span class="stat-box">👁️ {current_views + 1} Views</span>
+                    <span class="stat-box">👁️ {new_views} Views</span>
                     <span class="stat-box">❤️ {v.get("likes", 0)} Likes</span>
                     <span class="stat-box">👤 {v.get("followers", 0)} Followers</span>
                 </div>
             ''', unsafe_allow_html=True)
             
-            # Interaction Buttons
+            # বাটন
             c1, c2 = st.columns(2)
             with c1:
-                if st.button(f"❤️ Like", key=f"l_{v['id']}"):
-                    supabase.table("videos").update({"likes": v.get("likes", 0) + 1}).eq("id", v['id']).execute()
+                if st.button(f"❤️ Like", key=f"l_{v_id}"):
+                    supabase.table("videos").update({"likes": v.get("likes", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
             with c2:
-                if st.button(f"➕ Follow", key=f"f_{v['id']}"):
-                    supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v['id']).execute()
+                if st.button(f"➕ Follow", key=f"f_{v_id}"):
+                    supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
 
-            # Reward Button
-            st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Get Diamond Reward</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Claim Reward</a>', unsafe_allow_html=True)
             
-            # --- ব্যানার অ্যাড (প্রতিটি ভিডিওর নিচেই শো করবে) ---
-            st.components.v1.html(f"""
+            # --- বিজ্ঞাপন (প্রতিটি ভিডিওর নিচে) ---
+            st.components.v1.html("""
                 <div style="text-align:center; margin-top:10px;">
                     <script type="text/javascript">
-                    atOptions = {{ 'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {{}} }};
+                    atOptions = { 'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };
                     </script>
                     <script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>
                 </div>
             """, height=70)
             
             st.markdown('</div>', unsafe_allow_html=True)
-
     except Exception as e:
-        st.error(f"Syncing Error: {e}")
+        st.error(f"Error: {e}")
 
-# 5. Upload Section
+# ৫. ভিডিও আপলোড
 elif tab == "📤 Upload Video":
     if st.session_state.user:
-        v_file = st.file_uploader("Select Video (MP4)", type=['mp4'])
+        v_file = st.file_uploader("Upload MP4", type=['mp4'])
         if st.button("🚀 Publish") and v_file:
-            with st.spinner("Processing..."):
-                v_id = f"v_{uuid.uuid4()}.mp4"
-                supabase.storage.from_("videos").upload(path=v_id, file=v_file.getvalue())
-                url = supabase.storage.from_("videos").get_public_url(v_id)
-                supabase.table("videos").insert({
-                    "video_url": url, 
-                    "uploader_name": st.session_state.user,
-                    "uploader_pic": st.session_state.pic, 
-                    "likes": 0, 
-                    "followers": 0,
-                    "views": 0
-                }).execute()
-                st.success("Video Published Successfully!")
+            with st.spinner("Uploading..."):
+                try:
+                    v_uuid = f"v_{uuid.uuid4()}.mp4"
+                    supabase.storage.from_("videos").upload(path=v_uuid, file=v_file.getvalue())
+                    url = supabase.storage.from_("videos").get_public_url(v_uuid)
+                    
+                    supabase.table("videos").insert({
+                        "video_url": url, "uploader_name": st.session_state.user,
+                        "uploader_pic": st.session_state.pic, "likes": 0, "followers": 0, "views": 0
+                    }).execute()
+                    st.success("Success!")
+                except Exception as e:
+                    st.error(f"Error: {e}")
     else:
         st.warning("Please login first!")
