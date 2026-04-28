@@ -34,7 +34,7 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# 3. Session State for User and View tracking
+# 3. Session State
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -60,10 +60,9 @@ else:
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# 4. Feed Section with Real-Time Algorithm
+# 4. Feed Section
 if tab == "🌍 World Feed":
     try:
-        # ডাটাবেস থেকে ভিডিও নিয়ে আসা
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         data = res.data if res.data else []
 
@@ -78,14 +77,11 @@ if tab == "🌍 World Feed":
                 </div>
             ''', unsafe_allow_html=True)
 
-            # Video Player (অটোমেটিক ভিউ বাড়ানোর লজিক)
+            # Video Player
             st.video(v['video_url'])
             
             # --- অটোমেটিক ভিউ অ্যালগরিদম ---
-            # ভিডিওটি লোড হলে আমরা ডাটাবেসে ১টি ভিউ বাড়িয়ে দিব
             current_views = v.get("views", 0)
-            # আমরা এখানে একটি ট্রিক ব্যবহার করছি যাতে প্রতিবার রিফ্রেশে ১টা করে ভিউ বাড়ে
-            # আপনি চাইলে ইউজার ভিত্তিক চেকও করতে পারেন
             supabase.table("videos").update({"views": current_views + 1}).eq("id", v['id']).execute()
 
             # Stats Display
@@ -108,21 +104,20 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v['id']).execute()
                     st.rerun()
 
-            # Reward
+            # Reward Button
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Get Diamond Reward</a>', unsafe_allow_html=True)
             
+            # --- ব্যানার অ্যাড (প্রতিটি ভিডিওর নিচেই শো করবে) ---
+            st.components.v1.html(f"""
+                <div style="text-align:center; margin-top:10px;">
+                    <script type="text/javascript">
+                    atOptions = {{ 'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {{}} }};
+                    </script>
+                    <script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>
+                </div>
+            """, height=70)
+            
             st.markdown('</div>', unsafe_allow_html=True)
-
-            # Ad Placement (প্রতি ৩ ভিডিও পর)
-            if (index + 1) % 3 == 0:
-                st.components.v1.html("""
-                    <div style="text-align:center; margin:10px 0;">
-                        <script type="text/javascript">
-                        atOptions = {'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {}};
-                        </script>
-                        <script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>
-                    </div>
-                """, height=70)
 
     except Exception as e:
         st.error(f"Syncing Error: {e}")
@@ -136,7 +131,6 @@ elif tab == "📤 Upload Video":
                 v_id = f"v_{uuid.uuid4()}.mp4"
                 supabase.storage.from_("videos").upload(path=v_id, file=v_file.getvalue())
                 url = supabase.storage.from_("videos").get_public_url(v_id)
-                # নতুন ভিডিওর জন্য views ডিফল্ট ০ করে দিচ্ছি
                 supabase.table("videos").insert({
                     "video_url": url, 
                     "uploader_name": st.session_state.user,
