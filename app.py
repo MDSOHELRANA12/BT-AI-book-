@@ -15,7 +15,7 @@ st.markdown("""
     .stApp { background-color: #000; color: #fff; }
     .video-card { 
         background: #0d0d0d; border: 1px solid #333; border-radius: 15px; 
-        padding: 15px; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     .user-avatar { 
         width: 50px; height: 50px; border-radius: 50%; 
@@ -23,6 +23,19 @@ st.markdown("""
     }
     .username-text { font-weight: bold; font-size: 18px; color: #fff; }
     .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 20px; }
+    
+    /* ব্যানার অ্যাড যাতে ডিসপ্লেতে স্পষ্টভাবে দেখা যায় */
+    .banner-ad-box {
+        background: #111;
+        border: 1px dashed #555;
+        border-radius: 10px;
+        margin: 20px 0;
+        padding: 10px;
+        min-height: 280px; /* উচ্চতা বাড়ানো হয়েছে */
+        display: block;
+        text-align: center;
+    }
+    
     .btn-revenue { 
         display: block; width: 100%; padding: 14px; margin: 10px 0; 
         background: linear-gradient(135deg, #ed1c24, #aa0000); 
@@ -59,7 +72,7 @@ else:
 
 tab = st.sidebar.radio("Go To", ["🌍 World Feed", "📤 Upload Video"])
 
-# 4. Global World Feed with Automatic View Algorithm
+# 4. Global World Feed with Automatic View & Visible Ads
 if tab == "🌍 World Feed":
     st.subheader("Global Trending Videos")
     try:
@@ -68,8 +81,7 @@ if tab == "🌍 World Feed":
         
         if videos:
             for v in videos:
-                # --- অটোমেটিক ভিউ অ্যালগরিদম ---
-                # ভিডিওটি যখনই রেন্ডার হবে, ডাটাবেজে ভিউ ১ বেড়ে যাবে
+                # অটোমেটিক ভিউ অ্যালগরিদম
                 new_view_count = v.get('views', 0) + 1
                 supabase.table("videos").update({"views": new_view_count}).eq("id", v['id']).execute()
                 
@@ -93,7 +105,7 @@ if tab == "🌍 World Feed":
                 # Optimized Video Player
                 st.video(v['video_url'])
                 
-                # Stats (Real-time View & Like Display)
+                # Stats
                 st.markdown(f'<div><span class="stat-box">👁️ {new_view_count} Views</span> <span class="stat-box">❤️ {v.get("likes", 0)} Likes</span></div>', unsafe_allow_html=True)
                 
                 # Like Button
@@ -106,13 +118,16 @@ if tab == "🌍 World Feed":
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-                # Ads Integration
+                # --- দৃশ্যমান ব্যানার অ্যাড সেকশন ---
+                st.markdown('<div class="banner-ad-box">', unsafe_allow_html=True)
                 st.components.v1.html("""
-                    <div style="text-align:center; padding: 10px;">
+                    <div style="text-align:center; padding: 15px;">
                         <script src="https://pl29264299.profitablecpmratenetwork.com/e5/58/5e/e5585e56ecc6ca2a987116ca54b2614d.js"></script>
                         <script async="async" data-cfasync="false" src="https://pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
+                        <div id="container-3d5c1921120aef030a2a6dd72337ba1d" style="min-height: 250px; background: transparent;"></div>
                     </div>
-                """, height=220)
+                """, height=280)
+                st.markdown('</div>', unsafe_allow_html=True)
     except:
         st.info("Syncing with Global Server...")
 
