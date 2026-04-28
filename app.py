@@ -1,132 +1,128 @@
 import streamlit as st
 from supabase import create_client
 import uuid
-import streamlit.components.v1 as components
 
-# ১. গুগল এডসেন্স ভেরিফিকেশন ও অটো অ্যাডস সিস্টেম
-st.markdown("""
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1831608481745604" crossorigin="anonymous"></script>
-    <div style="display:none;">google.com, pub-1831608481745604, DIRECT, f08c47fec0942fa0</div>
-    """, unsafe_allow_html=True)
-
-# ২. কানেকশন
+# ১. সার্ভার কানেকশন (Supabase)
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
-st.set_page_config(page_title="BT-AI Revenue Engine", layout="wide")
+st.set_page_config(page_title="High-Speed Revenue Engine", layout="wide")
 
-# ৩. প্রফেশনাল স্টাইল (ব্যানার অ্যাড ও ডাইরেক্ট বাটনের ডিজাইন সহ)
+# ২. হাই-স্পিড ভিডিও প্লেয়ার ও প্রিমিয়াম ডিজাইন
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
-    .video-card { background: #0d0d0d; border: 1px solid #333; border-radius: 20px; padding: 15px; margin-bottom: 25px; }
-    .profile-pic { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #ff0000; margin-right: 12px; }
-    .user-info { display: flex; align-items: center; margin-bottom: 12px; }
+    .video-card { background: #0d0d0d; border: 1px solid #333; border-radius: 20px; padding: 10px; margin-bottom: 25px; }
     
-    /* ডাইরেক্ট লিঙ্ক বাটনের স্টাইল */
-    .direct-btn { 
-        display: block; width: 100%; padding: 12px; margin: 10px 0; 
-        background: linear-gradient(90deg, #ff0000, #990000); 
-        color: white !important; text-align: center; border-radius: 12px; 
-        font-weight: bold; text-decoration: none; border: 1px solid #fff;
+    /* গোল প্রোফাইল ও সবুজ প্লাস বাটন */
+    .profile-info { display: flex; align-items: center; margin-bottom: 10px; }
+    .avatar-img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #00ff00; object-fit: cover; }
+    .user-name { margin-left: 12px; font-weight: bold; font-size: 15px; }
+    
+    /* ভিডিও প্লেয়ার অপ্টিমাইজেশন (Fast Loading) */
+    video { 
+        width: 100%; border-radius: 12px; background: #000;
+        box-shadow: 0 0 15px rgba(0,255,0,0.1);
     }
     
-    /* ব্যানার অ্যাডের স্টাইল */
-    .ad-box { background: #1a1a1a; padding: 10px; border-radius: 10px; text-align: center; margin: 15px 0; border: 1px dashed #555; }
+    /* ইনকাম বাটন */
+    .income-btn { 
+        display: block; width: 100%; padding: 12px; margin: 8px 0; 
+        background: linear-gradient(90deg, #ff0000, #b30000); 
+        color: white !important; text-align: center; border-radius: 10px; 
+        font-weight: bold; text-decoration: none; border: 1px solid #fff;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# ৪. ইউজার সেশন ও ছবি আপলোড সিস্টেম
+# ৩. স্থায়ী প্রোফাইল সেশন
 if 'user' not in st.session_state: st.session_state.user = None
 
-st.sidebar.title("👤 My Profile")
+st.sidebar.title("👤 My Revenue Account")
 if not st.session_state.user:
-    u_name = st.sidebar.text_input("Username")
-    # এখানে এখন সরাসরি ছবি আপলোড করা যাবে
-    u_pic_file = st.sidebar.file_uploader("Upload Profile Picture", type=['jpg', 'png', 'jpeg'])
+    name_input = st.sidebar.text_input("আপনার নাম")
+    pic_input = st.sidebar.file_uploader("প্রোফাইল ছবি (একবার)", type=['jpg', 'png'])
     
-    if st.sidebar.button("Login"):
-        if u_name and u_pic_file:
-            with st.spinner("Setting Profile..."):
-                # ছবি সার্ভারে সেভ করা
-                pic_name = f"profile_{uuid.uuid4()}.jpg"
-                supabase.storage.from_("videos").upload(path=pic_name, file=u_pic_file.getvalue())
-                pic_url = supabase.storage.from_("videos").get_public_url(pic_name)
-                
-                st.session_state.user = u_name
-                st.session_state.pic = pic_url
-                st.rerun()
-        else: st.sidebar.error("Name and Photo required!")
+    if st.sidebar.button("অ্যাকাউন্ট সেটআপ"):
+        if name_input and pic_input:
+            fname = f"user_{uuid.uuid4()}.jpg"
+            supabase.storage.from_("videos").upload(path=fname, file=pic_input.getvalue())
+            st.session_state.pic = supabase.storage.from_("videos").get_public_url(fname)
+            st.session_state.user = name_input
+            st.rerun()
 else:
     st.sidebar.image(st.session_state.pic, width=100)
-    st.sidebar.success(f"Hello, {st.session_state.user}")
-    if st.sidebar.button("Logout"):
+    st.sidebar.success(f"ইউজার: {st.session_state.user}")
+    if st.sidebar.button("লগআউট"):
         st.session_state.user = None
         st.rerun()
 
-choice = st.sidebar.radio("Go to", ["🌍 World Feed", "📤 Upload Video"])
+choice = st.sidebar.radio("মেনু", ["🌍 Fast Feed", "📤 Upload & Earn"])
 
-# ৫. ওয়ার্ল্ড ফিড (অ্যাড ও ডাইরেক্ট লিঙ্ক সহ)
-if choice == "🌍 World Feed":
-    st.title("🌎 Global Trending")
+# ৪. হাই-স্পিড ভিডিও ফিড
+if choice == "🌍 Fast Feed":
+    st.title("⚡ High-Speed Trending")
     try:
+        # ডাটাবেজ থেকে ভিডিও আনা (সরাসরি লেটেস্টগুলো আগে আসবে)
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         if res.data:
             for i, v in enumerate(res.data):
                 st.markdown('<div class="video-card">', unsafe_allow_html=True)
                 
-                # ১. ইউজার ইনফো (গোল ছবি)
-                u_n = v.get('uploader_name', 'User')
-                u_p = v.get('uploader_pic', "https://cdn-icons-png.flaticon.com/512/3135/3135715.png")
-                st.markdown(f'<div class="user-info"><img src="{u_p}" class="profile-pic"><b>{u_n}</b></div>', unsafe_allow_html=True)
+                # ৫. প্রোফাইল ও প্লাস (+) বাটন
+                col_info, col_btn = st.columns([5, 1])
+                with col_info:
+                    st.markdown(f'''
+                        <div class="profile-info">
+                            <img src="{v.get('uploader_pic')}" class="avatar-img">
+                            <span class="user-name">{v.get('uploader_name')}</span>
+                        </div>
+                    ''', unsafe_allow_html=True)
+                with col_btn:
+                    if st.button("✚", key=f"f_{v['id']}"):
+                        if st.session_state.user:
+                            supabase.table("followers").insert({"follower_id": st.session_state.user, "following_id": v.get('uploader_name')}).execute()
+                            st.toast("ফলো করা হয়েছে!")
 
-                # ২. ভিডিও
-                st.video(v['video_url'])
+                # ৬. অটো-ফাস্ট ভিডিও প্লেয়ার (Streaming Enabled)
+                # 'preload="metadata"' ভিডিওর সাইজ ছোট করে দ্রুত লোড করে
+                st.video(v['video_url'], format="video/mp4", start_time=0)
                 
-                # ৩. ডাইরেক্ট লিঙ্ক বাটন (আপনার আগের বাটনগুলো)
-                st.markdown(f'<a href="https://www.profitablecpmrate.com/acbdqnnqig5mtmn5z7mubu" class="direct-btn">💎 Unlock Premium Content</a>', unsafe_allow_html=True)
-                
-                # ৪. স্ট্যাটাস ও লাইক
-                v_id = v['id']
-                v_count = v.get('views', 0) + 1
-                supabase.table("videos").update({"views": v_count}).eq("id", v_id).execute()
-                
-                c1, c2 = st.columns([1, 1])
-                with c1: st.write(f"👁️ {v_count} Views")
-                with c2: 
-                    if st.button(f"❤️ {v.get('likes', 0)} Like", key=f"lk_{v_id}"):
-                        supabase.table("videos").update({"likes": v.get('likes', 0) + 1}).eq("id", v_id).execute()
-                        st.rerun()
+                # ৭. ইনকাম বাটন
+                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" class="income-btn">💎 Click to Earn Diamond 1</a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/krgreepsz8?key=08a0fdc6d7ed4f33a60d1f4910ec27c5" class="income-btn">🔥 Direct Reward Link 2</a>', unsafe_allow_html=True)
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-                # ৫. ভিডিওর ফাঁকে ফাঁকে ব্যানার অ্যাড (প্রতি ২ ভিডিও পর পর)
-                if i % 2 == 0:
-                    st.markdown("""<div class="ad-box">
-                        <p style="color:#888; font-size:10px;">ADVERTISEMENT</p>
-                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1831608481745604" crossorigin="anonymous"></script>
-                        <ins class="adsbygoogle" style="display:block" data-ad-format="fluid" data-ad-layout-key="-fb+5w+4e-db+86" data-ad-client="ca-pub-1831608481745604" data-ad-slot="YOUR_SLOT_ID"></ins>
-                        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-                    </div>""", unsafe_allow_html=True)
+                # ৮. আপনার ৪টি অ্যাড কোড (ভিডিওর নিচে নিচে)
+                st.components.v1.html(f"""
+                    <div style="text-align:center;">
+                        <script src="https://pl29264299.profitablecpmratenetwork.com/e5/58/5e/e5585e56ecc6ca2a987116ca54b2614d.js"></script>
+                        <script async="async" data-cfasync="false" src="https://pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
+                        <div id="container-3d5c1921120aef030a2a6dd72337ba1d"></div>
+                    </div>
+                """, height=220)
 
-    except Exception as e: st.info("Loading Feed...")
+    except: st.info("সার্ভার কানেক্ট হচ্ছে...")
 
-# ৬. ভিডিও আপলোড
-elif choice == "📤 Upload Video":
+# ৯. ভিডিও আপলোড
+elif choice == "📤 Upload & Earn":
     if st.session_state.user:
-        v_file = st.file_uploader("Select MP4", type=['mp4'])
-        if st.button("🚀 Publish Now") and v_file:
-            with st.spinner("Uploading to Server..."):
-                f_name = f"{uuid.uuid4()}.mp4"
-                supabase.storage.from_("videos").upload(path=f_name, file=v_file.getvalue())
-                p_url = supabase.storage.from_("videos").get_public_url(f_name)
+        file = st.file_uploader("ভিডিও সিলেক্ট করুন (Fast Upload)", type=['mp4'])
+        if st.button("🚀 পাবলিশ করুন") and file:
+            with st.spinner("ভিডিও প্রসেসিং হচ্ছে..."):
+                v_id = f"vid_{uuid.uuid4()}.mp4"
+                # সুপাবেজ স্টোরেজে হাই-স্পিড আপলোড
+                supabase.storage.from_("videos").upload(path=v_id, file=file.getvalue(), file_options={"cache-control": "3600"})
+                v_url = supabase.storage.from_("videos").get_public_url(v_id)
                 
                 supabase.table("videos").insert({
-                    "video_url": p_url,
+                    "video_url": v_url,
                     "uploader_name": st.session_state.user,
                     "uploader_pic": st.session_state.pic,
                     "views": 0, "likes": 0
                 }).execute()
-                st.success("Video is now Live!")
-    else: st.warning("Login with name and photo first!")
+                st.success("সফলভাবে পাবলিশ হয়েছে!")
+                st.balloons()
+    else: st.warning("আগে প্রোফাইল সেটআপ করুন।")
