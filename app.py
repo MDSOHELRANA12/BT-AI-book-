@@ -23,20 +23,18 @@ st.markdown("""
     }
     .username-text { font-weight: bold; font-size: 16px; color: #fff; }
     .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 15px; }
-    
     .btn-reward { 
         display: block; width: 100%; padding: 12px; margin: 10px 0; 
         background: linear-gradient(135deg, #ed1c24, #aa0000); 
         color: white !important; text-align: center; border-radius: 8px; 
         font-weight: bold; text-decoration: none;
     }
-    iframe { border-radius: 10px; margin: 10px 0; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🛡️ BT AI book")
 
-# 3. Session State
+# 3. Session State for User and View tracking
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -62,25 +60,17 @@ else:
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# 4. Feed Section
+# 4. Feed Section with Real-Time Algorithm
 if tab == "🌍 World Feed":
-    # --- উপরের মেইন ব্যানার অ্যাড (লুপের বাইরে - একবারই দেখাবে) ---
-    st.components.v1.html("""
-        <div style="text-align:center;">
-            <script type="text/javascript">
-            atOptions = { 'key' : '5327bebb34c787d2ccfb1c36bcfa9d6e', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
-            </script>
-            <script src="https://www.highperformanceformat.com/5327bebb34c787d2ccfb1c36bcfa9d6e/invoke.js"></script>
-        </div>
-    """, height=260)
-
     try:
-        data = supabase.table("videos").select("*").order("created_at", desc=True).execute().data
-        
+        # ডাটাবেস থেকে ভিডিও নিয়ে আসা
+        res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
+        data = res.data if res.data else []
+
         for index, v in enumerate(data):
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             
-            # User Info
+            # User Header
             st.markdown(f'''
                 <div style="display:flex; align-items:center; margin-bottom:10px;">
                     <img src="{v.get('uploader_pic', '')}" class="user-avatar">
@@ -88,18 +78,26 @@ if tab == "🌍 World Feed":
                 </div>
             ''', unsafe_allow_html=True)
 
-            # Video Player
+            # Video Player (অটোমেটিক ভিউ বাড়ানোর লজিক)
             st.video(v['video_url'])
             
-            # Stats
+            # --- অটোমেটিক ভিউ অ্যালগরিদম ---
+            # ভিডিওটি লোড হলে আমরা ডাটাবেসে ১টি ভিউ বাড়িয়ে দিব
+            current_views = v.get("views", 0)
+            # আমরা এখানে একটি ট্রিক ব্যবহার করছি যাতে প্রতিবার রিফ্রেশে ১টা করে ভিউ বাড়ে
+            # আপনি চাইলে ইউজার ভিত্তিক চেকও করতে পারেন
+            supabase.table("videos").update({"views": current_views + 1}).eq("id", v['id']).execute()
+
+            # Stats Display
             st.markdown(f'''
                 <div style="margin: 10px 0;">
+                    <span class="stat-box">👁️ {current_views + 1} Views</span>
                     <span class="stat-box">❤️ {v.get("likes", 0)} Likes</span>
                     <span class="stat-box">👤 {v.get("followers", 0)} Followers</span>
                 </div>
             ''', unsafe_allow_html=True)
             
-            # Buttons
+            # Interaction Buttons
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"❤️ Like", key=f"l_{v['id']}"):
@@ -110,38 +108,43 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v['id']).execute()
                     st.rerun()
 
-            # Reward Link (ভিডিওর নিচেই থাকবে)
+            # Reward
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Get Diamond Reward</a>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # --- প্রতি ৩টি ভিডিও পর পর একটি অ্যাড দেখাবে (যাতে বিরক্তিকর না হয়) ---
+            # Ad Placement (প্রতি ৩ ভিডিও পর)
             if (index + 1) % 3 == 0:
                 st.components.v1.html("""
-                    <div style="text-align:center; margin: 20px 0;">
+                    <div style="text-align:center; margin:10px 0;">
                         <script type="text/javascript">
-                        atOptions = { 'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };
+                        atOptions = {'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {}};
                         </script>
                         <script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>
                     </div>
                 """, height=70)
 
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Syncing Error: {e}")
 
 # 5. Upload Section
 elif tab == "📤 Upload Video":
     if st.session_state.user:
         v_file = st.file_uploader("Select Video (MP4)", type=['mp4'])
         if st.button("🚀 Publish") and v_file:
-            with st.spinner("Uploading..."):
+            with st.spinner("Processing..."):
                 v_id = f"v_{uuid.uuid4()}.mp4"
                 supabase.storage.from_("videos").upload(path=v_id, file=v_file.getvalue())
                 url = supabase.storage.from_("videos").get_public_url(v_id)
+                # নতুন ভিডিওর জন্য views ডিফল্ট ০ করে দিচ্ছি
                 supabase.table("videos").insert({
-                    "video_url": url, "uploader_name": st.session_state.user,
-                    "uploader_pic": st.session_state.pic, "likes": 0, "followers": 0
+                    "video_url": url, 
+                    "uploader_name": st.session_state.user,
+                    "uploader_pic": st.session_state.pic, 
+                    "likes": 0, 
+                    "followers": 0,
+                    "views": 0
                 }).execute()
-                st.success("Success!")
+                st.success("Video Published Successfully!")
     else:
         st.warning("Please login first!")
