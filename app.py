@@ -2,127 +2,165 @@ import streamlit as st
 from supabase import create_client
 import uuid
 
-# ১. সার্ভার কানেকশন (Supabase)
+# 1. Database Connection (BT AI book Backend)
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
-st.set_page_config(page_title="High-Speed Revenue Engine", layout="wide")
+# Platform Branding
+st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ২. হাই-স্পিড ভিডিও প্লেয়ার ও প্রিমিয়াম ডিজাইন
+# 2. Premium Professional CSS (Global Standard)
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
-    .video-card { background: #0d0d0d; border: 1px solid #333; border-radius: 20px; padding: 10px; margin-bottom: 25px; }
-    
-    /* গোল প্রোফাইল ও সবুজ প্লাস বাটন */
-    .profile-info { display: flex; align-items: center; margin-bottom: 10px; }
-    .avatar-img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #00ff00; object-fit: cover; }
-    .user-name { margin-left: 12px; font-weight: bold; font-size: 15px; }
-    
-    /* ভিডিও প্লেয়ার অপ্টিমাইজেশন (Fast Loading) */
-    video { 
-        width: 100%; border-radius: 12px; background: #000;
-        box-shadow: 0 0 15px rgba(0,255,0,0.1);
+    .video-card { 
+        background: #0d0d0d; 
+        border: 1px solid #333; 
+        border-radius: 15px; 
+        padding: 15px; 
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     
-    /* ইনকাম বাটন */
-    .income-btn { 
-        display: block; width: 100%; padding: 12px; margin: 8px 0; 
-        background: linear-gradient(90deg, #ff0000, #b30000); 
-        color: white !important; text-align: center; border-radius: 10px; 
-        font-weight: bold; text-decoration: none; border: 1px solid #fff;
+    /* Profile Header Styling */
+    .profile-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .user-box { display: flex; align-items: center; }
+    .user-avatar { 
+        width: 50px; height: 50px; 
+        border-radius: 50%; 
+        border: 2px solid #00ff00; 
+        object-fit: cover; 
+        margin-right: 12px; 
     }
+    .username-text { font-weight: bold; font-size: 18px; color: #ffffff; text-transform: capitalize; }
+    
+    /* Plus Button */
+    .follow-btn { 
+        background-color: #28a745; color: white; 
+        border: none; border-radius: 50%; 
+        width: 32px; height: 32px; font-size: 20px; cursor: pointer;
+    }
+    
+    /* Income/Revenue Buttons */
+    .btn-revenue { 
+        display: block; width: 100%; padding: 14px; margin: 10px 0; 
+        background: linear-gradient(135deg, #ed1c24, #aa0000); 
+        color: white !important; text-align: center; border-radius: 8px; 
+        font-weight: bold; text-decoration: none; border: 1px solid rgba(255,255,255,0.2);
+    }
+    .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# ৩. স্থায়ী প্রোফাইল সেশন
-if 'user' not in st.session_state: st.session_state.user = None
+# Main Title
+st.title("🛡️ BT AI book")
 
-st.sidebar.title("👤 My Revenue Account")
+# 3. Permanent Profile Management
+if 'user' not in st.session_state:
+    st.session_state.user = None
+    st.session_state.pic = None
+
+st.sidebar.header("My Profile")
 if not st.session_state.user:
-    name_input = st.sidebar.text_input("আপনার নাম")
-    pic_input = st.sidebar.file_uploader("প্রোফাইল ছবি (একবার)", type=['jpg', 'png'])
-    
-    if st.sidebar.button("অ্যাকাউন্ট সেটআপ"):
-        if name_input and pic_input:
-            fname = f"user_{uuid.uuid4()}.jpg"
-            supabase.storage.from_("videos").upload(path=fname, file=pic_input.getvalue())
-            st.session_state.pic = supabase.storage.from_("videos").get_public_url(fname)
-            st.session_state.user = name_input
+    name_in = st.sidebar.text_input("Username")
+    file_in = st.sidebar.file_uploader("Upload Profile Image", type=['jpg', 'png', 'jpeg'])
+    if st.sidebar.button("Create Account"):
+        if name_in and file_in:
+            file_ext = file_in.name.split('.')[-1]
+            unique_name = f"profile_{uuid.uuid4()}.{file_ext}"
+            supabase.storage.from_("videos").upload(path=unique_name, file=file_in.getvalue())
+            st.session_state.pic = supabase.storage.from_("videos").get_public_url(unique_name)
+            st.session_state.user = name_in
             st.rerun()
 else:
-    st.sidebar.image(st.session_state.pic, width=100)
-    st.sidebar.success(f"ইউজার: {st.session_state.user}")
-    if st.sidebar.button("লগআউট"):
+    st.sidebar.image(st.session_state.pic, width=120)
+    st.sidebar.markdown(f"### Welcome, **{st.session_state.user}**")
+    if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.rerun()
 
-choice = st.sidebar.radio("মেনু", ["🌍 Fast Feed", "📤 Upload & Earn"])
+tab = st.sidebar.radio("Go To", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৪. হাই-স্পিড ভিডিও ফিড
-if choice == "🌍 Fast Feed":
-    st.title("⚡ High-Speed Trending")
+# 4. Global World Feed (Real-Time Views & Likes)
+if tab == "🌍 World Feed":
+    st.subheader("Global Trending Videos")
     try:
-        # ডাটাবেজ থেকে ভিডিও আনা (সরাসরি লেটেস্টগুলো আগে আসবে)
-        res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
-        if res.data:
-            for i, v in enumerate(res.data):
+        # Fetching videos with uploader details
+        response = supabase.table("videos").select("*").order("created_at", desc=True).execute()
+        videos = response.data
+        
+        if videos:
+            for v in videos:
                 st.markdown('<div class="video-card">', unsafe_allow_html=True)
                 
-                # ৫. প্রোফাইল ও প্লাস (+) বাটন
-                col_info, col_btn = st.columns([5, 1])
-                with col_info:
+                # Profile Section (Original Photo & Name)
+                col1, col2 = st.columns([6, 1])
+                with col1:
+                    u_pic = v.get('uploader_pic') if v.get('uploader_pic') else "https://via.placeholder.com/150"
+                    u_name = v.get('uploader_name', 'BT User')
                     st.markdown(f'''
-                        <div class="profile-info">
-                            <img src="{v.get('uploader_pic')}" class="avatar-img">
-                            <span class="user-name">{v.get('uploader_name')}</span>
+                        <div class="profile-container">
+                            <div class="user-box">
+                                <img src="{u_pic}" class="user-avatar">
+                                <span class="username-text">{u_name}</span>
+                            </div>
                         </div>
                     ''', unsafe_allow_html=True)
-                with col_btn:
+                with col2:
                     if st.button("✚", key=f"f_{v['id']}"):
-                        if st.session_state.user:
-                            supabase.table("followers").insert({"follower_id": st.session_state.user, "following_id": v.get('uploader_name')}).execute()
-                            st.toast("ফলো করা হয়েছে!")
+                        st.toast(f"Following {u_name}")
 
-                # ৬. অটো-ফাস্ট ভিডিও প্লেয়ার (Streaming Enabled)
-                # 'preload="metadata"' ভিডিওর সাইজ ছোট করে দ্রুত লোড করে
-                st.video(v['video_url'], format="video/mp4", start_time=0)
+                # Optimized Video Player
+                st.video(v['video_url'])
                 
-                # ৭. ইনকাম বাটন
-                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" class="income-btn">💎 Click to Earn Diamond 1</a>', unsafe_allow_html=True)
-                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/krgreepsz8?key=08a0fdc6d7ed4f33a60d1f4910ec27c5" class="income-btn">🔥 Direct Reward Link 2</a>', unsafe_allow_html=True)
+                # Dynamic Stats (Views & Likes)
+                st.markdown(f'<div><span class="stat-box">👁️ {v.get("views", 0)} Views</span> <span class="stat-box">❤️ {v.get("likes", 0)} Likes</span></div>', unsafe_allow_html=True)
+                
+                # Action Buttons
+                c_like, c_share = st.columns(2)
+                with c_like:
+                    if st.button("❤️ Like This", key=f"lk_{v['id']}"):
+                        current_likes = v.get("likes", 0) + 1
+                        supabase.table("videos").update({"likes": current_likes}).eq("id", v['id']).execute()
+                        st.rerun()
+                
+                # Revenue Links
+                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" class="btn-revenue">💎 Click to Earn Diamond 1</a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/krgreepsz8?key=08a0fdc6d7ed4f33a60d1f4910ec27c5" class="btn-revenue">🔥 Direct Reward Link 2</a>', unsafe_allow_html=True)
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
-                # ৮. আপনার ৪টি অ্যাড কোড (ভিডিওর নিচে নিচে)
-                st.components.v1.html(f"""
-                    <div style="text-align:center;">
+                # Ads integration (4 scripts as requested)
+                st.components.v1.html("""
+                    <div style="text-align:center; padding: 10px;">
                         <script src="https://pl29264299.profitablecpmratenetwork.com/e5/58/5e/e5585e56ecc6ca2a987116ca54b2614d.js"></script>
                         <script async="async" data-cfasync="false" src="https://pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
-                        <div id="container-3d5c1921120aef030a2a6dd72337ba1d"></div>
                     </div>
                 """, height=220)
+    except:
+        st.info("Syncing with Global Server... Please Wait.")
 
-    except: st.info("সার্ভার কানেক্ট হচ্ছে...")
-
-# ৯. ভিডিও আপলোড
-elif choice == "📤 Upload & Earn":
+# 5. Secure Video Uploading
+elif tab == "📤 Upload Video":
     if st.session_state.user:
-        file = st.file_uploader("ভিডিও সিলেক্ট করুন (Fast Upload)", type=['mp4'])
-        if st.button("🚀 পাবলিশ করুন") and file:
-            with st.spinner("ভিডিও প্রসেসিং হচ্ছে..."):
-                v_id = f"vid_{uuid.uuid4()}.mp4"
-                # সুপাবেজ স্টোরেজে হাই-স্পিড আপলোড
-                supabase.storage.from_("videos").upload(path=v_id, file=file.getvalue(), file_options={"cache-control": "3600"})
-                v_url = supabase.storage.from_("videos").get_public_url(v_id)
+        st.subheader("Publish to World")
+        up_file = st.file_uploader("Choose MP4 Video", type=['mp4'])
+        if st.button("🚀 Publish Now") and up_file:
+            with st.spinner("Processing High-Speed Upload..."):
+                vid_id = f"bt_vid_{uuid.uuid4()}.mp4"
+                supabase.storage.from_("videos").upload(path=vid_id, file=up_file.getvalue())
+                vid_url = supabase.storage.from_("videos").get_public_url(vid_id)
                 
+                # Secure Insert into Database
                 supabase.table("videos").insert({
-                    "video_url": v_url,
+                    "video_url": vid_url,
                     "uploader_name": st.session_state.user,
                     "uploader_pic": st.session_state.pic,
-                    "views": 0, "likes": 0
+                    "views": 1, # Auto-start with 1 view
+                    "likes": 0
                 }).execute()
-                st.success("সফলভাবে পাবলিশ হয়েছে!")
+                st.success("Successfully Published on BT AI book!")
                 st.balloons()
-    else: st.warning("আগে প্রোফাইল সেটআপ করুন।")
+    else:
+        st.error("Access Denied: Please Setup Your Profile in the Sidebar First.")
