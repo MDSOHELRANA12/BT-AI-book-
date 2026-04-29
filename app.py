@@ -3,14 +3,14 @@ from supabase import create_client
 import uuid
 import streamlit.components.v1 as components
 
-# ১. সুপাবেস কানেকশন (আগের মতোই থাকবে)
+# ১. সুপাবেস কানেকশন (অপরিবর্তিত)
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ২. ডার্ক ইন্টারফেস ও স্টাইল (আগের কাঠামো ঠিক রেখে)
+# ২. ডিজাইন ও স্টাইল (সব ফিচার ফিরিয়ে আনা হয়েছে)
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -18,22 +18,14 @@ st.markdown("""
         background: #0d0d0d; border: 1px solid #333; border-radius: 15px; 
         padding: 15px; margin-bottom: 25px;
     }
-    .user-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #00ff00; }
+    .user-avatar { 
+        width: 50px; height: 50px; border-radius: 50%; 
+        border: 2px solid #00ff00; object-fit: cover; margin-right: 12px; 
+    }
+    .username-text { font-weight: bold; font-size: 18px; color: #fff; }
     .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 15px; }
     
-    /* বড় রিওয়ার্ড ব্যানার ডিজাইন - আপনার ৩টি ভিডিও পর পর আসবে */
-    .reward-box {
-        padding: 20px; border: 2px solid #ff0055; border-radius: 20px; 
-        text-align: center; margin: 20px 0; background: #000;
-    }
-    .reward-btn {
-        background: linear-gradient(90deg, #ff0055, #ff0080);
-        padding: 18px; display: block; border-radius: 15px; color: white !important;
-        font-weight: bold; text-decoration: none; font-size: 20px;
-        box-shadow: 0 0 15px #ff0055; margin-top: 10px;
-    }
-    
-    /* প্রতিটি ভিডিওর নিচে লাল বাটন */
+    /* প্রতিটি ভিডিওর নিচে আপনার লাল রিওয়ার্ড বাটন */
     .claim-btn {
         display: block; width: 100%; padding: 12px; margin: 10px 0;
         background: red; color: white !important; text-align: center;
@@ -42,16 +34,42 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# ৩. সোশ্যাল বার (Social Bar) - এটি স্ক্রিনে অটোমেটিক ভেসে থাকবে
+# ৩. সোশ্যাল বার অ্যাড (এটি অটোমেটিক নড়াচড়া করবে)
 components.html("""
     <script src="https://pl29289908.profitablecpmratenetwork.com/75/f2/b3/75f2b3ea1ac23fb6fb2830593292cea8.js"></script>
 """, height=0)
 
+st.title("🛡️ BT AI book")
+
+# ৪. সেশন ম্যানেজমেন্ট ও লগইন (আপনার লগইন বাটন ও ছবি আপলোড এখানে ঠিক করা হয়েছে)
 if 'user' not in st.session_state:
     st.session_state.user = None
+    st.session_state.pic = None
+
+if not st.session_state.user:
+    st.sidebar.header("🔐 Login")
+    u_name = st.sidebar.text_input("Full Name / Username")
+    u_pic = st.sidebar.file_uploader("Choose Profile Photo", type=['jpg', 'png', 'jpeg'])
+    if st.sidebar.button("Enter Platform"):
+        if u_name and u_pic:
+            try:
+                fname = f"profile_{uuid.uuid4()}.jpg"
+                supabase.storage.from_("videos").upload(path=fname, file=u_pic.getvalue())
+                st.session_state.pic = supabase.storage.from_("videos").get_public_url(fname)
+                st.session_state.user = u_name
+                st.rerun()
+            except:
+                st.sidebar.error("Connection Error! Try again.")
+else:
+    st.sidebar.image(st.session_state.pic, width=100)
+    st.sidebar.success(f"Welcome, {st.session_state.user}")
+    if st.sidebar.button("Logout"):
+        st.session_state.user = None
+        st.rerun()
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
+# ৫. ওয়ার্ল্ড ফিড (ভিডিও ও অ্যাডস)
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
@@ -60,23 +78,24 @@ if tab == "🌍 World Feed":
         for index, v in enumerate(data):
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             
-            # ইউজার প্রোফাইল (আগের সিস্টেম)
+            # ইউজার প্রোফাইল ছবি ও নাম
             st.markdown(f'''
-                <div style="display:flex; align-items:center; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; margin-bottom:15px;">
                     <img src="{v.get('uploader_pic', '')}" class="user-avatar">
-                    <span style="margin-left:10px; font-weight:bold;">{v.get('uploader_name', 'User')}</span>
+                    <span class="username-text">{v.get('uploader_name', 'BT User')}</span>
                 </div>
             ''', unsafe_allow_html=True)
 
             # ভিডিও প্লেয়ার
             st.video(v['video_url'])
             
-            # প্রতিটি ভিডিওর নিচে আপনার লাল বাটন
+            # রিওয়ার্ড বাটন
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" class="claim-btn">💎 Claim Diamond Reward</a>', unsafe_allow_html=True)
 
-            # লাইক ও ফলো সেকশন (আগের কাঠামো)
+            # স্ট্যাটাস ডিসপ্লে
             st.markdown(f'<div><span class="stat-box">👁️ {v.get("views", 0)} Views</span> <span class="stat-box">❤️ {v.get("likes", 0)} Likes</span></div>', unsafe_allow_html=True)
             
+            # লাইক ও ফলো বাটন
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"❤️ Like", key=f"l_{v['id']}"):
@@ -89,21 +108,38 @@ if tab == "🌍 World Feed":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # ৪. প্রতি ৩টি ভিডিও পর পর বড় ব্যানার (আপনার নির্দেশ অনুযায়ী ৩টি করা হয়েছে)
+            # প্রতি ৩টি ভিডিও পর পর বড় রিওয়ার্ড ব্যানার
             if (index + 1) % 3 == 0:
                 st.markdown(f'''
-                    <div class="reward-box">
-                        <h2 style="color:#ff0055;">🎁 Special Reward Unlocked! 🎁</h2>
-                        <p>Click below to claim your daily diamonds!</p>
-                        <a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" class="reward-btn">
-                            🚀 CLAIM YOUR REWARD NOW 🚀
-                        </a>
+                    <div style="padding: 15px; border: 2px solid #ff0055; border-radius: 15px; text-align: center; margin-bottom: 20px;">
+                        <h3 style="color:#ff0055;">🎁 Special Reward Unlocked!</h3>
+                        <a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" style="background:#ff0055; padding:15px; display:block; border-radius:10px; color:white; font-weight:bold; text-decoration:none;">🚀 CLAIM NOW 🚀</a>
                     </div>
                 ''', unsafe_allow_html=True)
 
     except Exception as e:
-        st.error("Feed is updating...")
+        st.error("Feed loading...")
 
+# ৬. ভিডিও আপলোড সেকশন (সম্পূর্ণ ঠিক করা হয়েছে)
 elif tab == "📤 Upload Video":
-    # আপলোড সিস্টেম আগের মতোই থাকবে
-    pass
+    if st.session_state.user:
+        st.subheader("Share Your Moments")
+        v_file = st.file_uploader("Select MP4 Video File", type=['mp4'])
+        if st.button("🚀 Publish Now") and v_file:
+            with st.spinner("Processing Video..."):
+                try:
+                    v_uuid = f"v_{uuid.uuid4()}.mp4"
+                    supabase.storage.from_("videos").upload(path=v_uuid, file=v_file.getvalue())
+                    v_url = supabase.storage.from_("videos").get_public_url(v_uuid)
+                    supabase.table("videos").insert({
+                        "video_url": v_url, 
+                        "uploader_name": st.session_state.user,
+                        "uploader_pic": st.session_state.pic, 
+                        "likes": 0, "followers": 0, "views": 0
+                    }).execute()
+                    st.success("Video Published!")
+                    st.balloons()
+                except Exception as e:
+                    st.error(f"Error: {e}")
+    else:
+        st.warning("Please login first to upload videos.")
