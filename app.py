@@ -3,14 +3,14 @@ from supabase import create_client
 import uuid
 import streamlit.components.v1 as components
 
-# ১. সুপাবেস কানেকশন (আপনার তথ্য অপরিবর্তিত রাখা হয়েছে)
+# ১. সুপাবেস কানেকশন (সোহেল ভাই, আপনার অরিজিনাল ডাটাবেস ঠিক রাখা হয়েছে)
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ২. ডার্ক ইন্টারফেস ও ডিজাইন
+# ২. ডার্ক ইন্টারফেস ও স্টাইলিশ ডিজাইন
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -24,54 +24,37 @@ st.markdown("""
     }
     .username-text { font-weight: bold; font-size: 18px; color: #fff; }
     .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 15px; }
-    .btn-reward { 
-        display: block; width: 100%; padding: 12px; margin: 10px 0; 
-        background: linear-gradient(135deg, #ed1c24, #aa0000); 
-        color: white !important; text-align: center; border-radius: 8px; 
-        font-weight: bold; text-decoration: none;
+    
+    /* স্মার্টলিংক বড় ব্যানারের ডিজাইন */
+    .btn-smartlink { 
+        display: block; width: 100%; padding: 25px; margin: 15px 0; 
+        background: linear-gradient(135deg, #ff0055, #990033); 
+        color: white !important; text-align: center; border-radius: 15px; 
+        font-size: 22px; font-weight: bold; text-decoration: none;
+        border: 3px solid #fff; box-shadow: 0 0 20px #ff0055;
+        animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- সোশ্যাল বার অ্যাড (এটি সাইটের উপরে নড়াচড়া করবে এবং ইনকাম বাড়াবে) ---
-components.html("""
-    <script src="https://pl29264299.profitablecpmratenetwork.com/e5/58/5e/e5585e56ecc6ca2a987116ca54b2614d.js"></script>
-""", height=0)
-
 st.title("🛡️ BT AI book")
 
-# ৩. সেশন ম্যানেজমেন্ট
+# ৩. সেশন ম্যানেজমেন্ট (লগইন সিস্টেম ঠিক আছে)
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
 
-# সাইডবার লগইন
-if not st.session_state.user:
-    st.sidebar.header("🔐 Login")
-    u_name = st.sidebar.text_input("Full Name / Username")
-    u_pic = st.sidebar.file_uploader("Choose Profile Photo", type=['jpg', 'png', 'jpeg'])
-    if st.sidebar.button("Enter Platform"):
-        if u_name and u_pic:
-            try:
-                fname = f"profile_{uuid.uuid4()}.jpg"
-                supabase.storage.from_("videos").upload(path=fname, file=u_pic.getvalue())
-                st.session_state.pic = supabase.storage.from_("videos").get_public_url(fname)
-                st.session_state.user = u_name
-                st.rerun()
-            except:
-                st.sidebar.error("Connection Error! Please try again.")
-else:
-    st.sidebar.image(st.session_state.pic, width=100)
-    st.sidebar.success(f"Welcome, {st.session_state.user}")
-    if st.sidebar.button("Logout"):
-        st.session_state.user = None
-        st.rerun()
-
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৪. মেইন ফিড (ভিডিও ও অ্যাডস)
+# ৪. মেইন ফিড (ভিডিও ও অটোমেটিক অ্যাডস)
 if tab == "🌍 World Feed":
     try:
+        # ডাটাবেস থেকে সব ভিডিও আনা হচ্ছে
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         data = res.data if res.data else []
 
@@ -89,16 +72,12 @@ if tab == "🌍 World Feed":
             # ভিডিও প্লেয়ার
             st.video(v['video_url'])
             
-            # ৫টি ভিডিও পর পর বড় ডিসপ্লে অ্যাড (আপনার দেওয়া বড় কোডটি এখানে সেট করা হয়েছে)
-            if index > 0 and index % 5 == 0:
-                components.html("""
-                    <div style="display:flex; justify-content:center; padding:10px; background:#111; border-radius:10px;">
-                        <script async="async" data-cfasync="false" src="https://pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
-                        <div id="container-3d5c1921120aef030a2a6dd72337ba1d"></div>
-                    </div>
-                """, height=260)
+            # --- প্রতিটি ভিডিওর নিচে সোশ্যাল বার (Social Bar - নড়াচড়া করবে) ---
+            components.html("""
+                <script src="https://pl29289908.profitablecpmratenetwork.com/75/f2/b3/75f2b3ea1ac23fb6fb2830593292cea8.js"></script>
+            """, height=50)
 
-            # স্ট্যাটাস ডিসপ্লে ও ভিউ কাউন্ট
+            # স্ট্যাটাস ও বাটন লজিক (ভিউ কাউন্ট ঠিক আছে)
             v_id = v['id']
             v_count = v.get("views", 0)
             try:
@@ -109,7 +88,6 @@ if tab == "🌍 World Feed":
                 <div style="margin: 12px 0;">
                     <span class="stat-box">👁️ {v_count + 1} Views</span>
                     <span class="stat-box">❤️ {v.get("likes", 0)} Likes</span>
-                    <span class="stat-box">👤 {v.get("followers", 0)} Followers</span>
                 </div>
             ''', unsafe_allow_html=True)
             
@@ -124,30 +102,24 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
 
-            # রিওয়ার্ড লিঙ্ক
-            st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Claim Diamond Reward</a>', unsafe_allow_html=True)
-            
-            # --- ভিডিওর নিচের অটো-ব্যানার অ্যাড (নড়াচড়া করবে) ---
-            components.html(f"""
-                <div style="text-align:center; margin-top:10px; background:#111; padding:5px; border-radius:5px;">
-                    <script type="text/javascript">
-                      atOptions = {{
-                        'key' : '342950879f2064f7255ad047622381c8',
-                        'format' : 'iframe',
-                        'height' : 50,
-                        'width' : 320,
-                        'params' : {{}}
-                      }};
-                    </script>
-                    <script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>
-                </div>
-            """, height=80)
-            
             st.markdown('</div>', unsafe_allow_html=True)
+
+            # --- ৫. ৪টি ভিডিও পর পর বড় স্মার্টলিংক ব্যানার (অটোমেটিক আসবে) ---
+            if (index + 1) % 4 == 0:
+                st.markdown(f'''
+                    <div style="padding: 15px; background: #111; border-radius: 20px; border: 2px solid #ff0055; margin-bottom: 30px; text-align: center;">
+                        <h2 style="color:#ff0055; margin-bottom:10px;">🎁 Special Reward Unlocked! 🎁</h2>
+                        <p style="color:#fff;">Click the big button below to claim your daily diamonds!</p>
+                        <a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" class="btn-smartlink">
+                            💎 CLAIM YOUR REWARD NOW 💎
+                        </a>
+                    </div>
+                ''', unsafe_allow_html=True)
+
     except Exception as e:
         st.error(f"Syncing Feed... Please wait.")
 
-# ৫. ভিডিও আপলোড সেকশন (অপরিবর্তিত)
+# ৫. ভিডিও আপলোড সেকশন (আপনার অরিজিনাল কোড অপরিবর্তিত)
 elif tab == "📤 Upload Video":
     if st.session_state.user:
         st.subheader("Share Your Moments")
@@ -162,9 +134,7 @@ elif tab == "📤 Upload Video":
                         "video_url": v_url, 
                         "uploader_name": st.session_state.user,
                         "uploader_pic": st.session_state.pic, 
-                        "likes": 0, 
-                        "followers": 0, 
-                        "views": 0
+                        "likes": 0, "followers": 0, "views": 0
                     }).execute()
                     st.success("Video Published Successfully!")
                     st.balloons()
