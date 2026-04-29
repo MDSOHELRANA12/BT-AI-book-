@@ -9,7 +9,15 @@ supabase = create_client(URL, KEY)
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ২. ডিজাইন (সব ঠিক রাখা হয়েছে)
+# ২. ভিউ ও ফলোয়ার ফরম্যাট ফাংশন (1K, 2K করার জন্য)
+def format_value(value):
+    if value >= 1000000:
+        return f"{value/1000000:.1f}M"
+    elif value >= 1000:
+        return f"{value/1000:.1f}K"
+    return str(value)
+
+# ৩. ডিজাইন ও স্টাইল (সব আগের মতো রাখা হয়েছে)
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -38,36 +46,50 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# ৩. সেশন ম্যানেজমেন্ট
+# ৪. সেশন ও লগইন ম্যানেজমেন্ট (ছবি স্থায়ী করার লজিক)
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
 
-# সাইডবার লগইন
 if not st.session_state.user:
-    st.sidebar.header("🔐 Login")
-    u_name = st.sidebar.text_input("Full Name / Username")
-    u_pic = st.sidebar.file_uploader("Choose Profile Photo", type=['jpg', 'png', 'jpeg'])
-    if st.sidebar.button("Enter Platform"):
-        if u_name and u_pic:
-            try:
-                fname = f"profile_{uuid.uuid4()}.jpg"
-                supabase.storage.from_("videos").upload(path=fname, file=u_pic.getvalue())
-                st.session_state.pic = supabase.storage.from_("videos").get_public_url(fname)
+    st.sidebar.header("🔐 User Login")
+    u_name = st.sidebar.text_input("Enter Your Registered Name")
+    
+    if u_name:
+        # ডাটাবেসে ইউজার চেক করা
+        user_data = supabase.table("users").select("*").eq("username", u_name).execute()
+        if user_data.data:
+            st.sidebar.info("Account found! Auto-syncing photo...")
+            if st.sidebar.button("Login"):
                 st.session_state.user = u_name
+                st.session_state.pic = user_data.data[0]['profile_pic']
                 st.rerun()
-            except:
-                st.sidebar.error("Connection Error!")
+        else:
+            st.sidebar.warning("New user? Upload photo once to save forever.")
+            u_pic = st.sidebar.file_uploader("Upload Profile Photo", type=['jpg', 'png', 'jpeg'])
+            if st.sidebar.button("Create Account"):
+                if u_name and u_pic:
+                    try:
+                        fname = f"profile_{uuid.uuid4()}.jpg"
+                        supabase.storage.from_("videos").upload(path=fname, file=u_pic.getvalue())
+                        p_url = supabase.storage.from_("videos").get_public_url(fname)
+                        # ইউজার সেভ করা
+                        supabase.table("users").insert({"username": u_name, "profile_pic": p_url}).execute()
+                        st.session_state.user = u_name
+                        st.session_state.pic = p_url
+                        st.rerun()
+                    except:
+                        st.sidebar.error("Network error! Try again.")
 else:
     st.sidebar.image(st.session_state.pic, width=100)
-    st.sidebar.success(f"Welcome, {st.session_state.user}")
+    st.sidebar.success(f"Profile: {st.session_state.user}")
     if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.rerun()
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৪. মেইন ফিড
+# ৫. মেইন ফিড (ভিডিও ও অ্যাড)
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
@@ -76,7 +98,7 @@ if tab == "🌍 World Feed":
         for index, v in enumerate(data):
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             
-            # ইউজার প্রোফাইল
+            # ইউজার প্রোফাইল হেড
             st.markdown(f'''
                 <div style="display:flex; align-items:center; margin-bottom:15px;">
                     <img src="{v.get('uploader_pic', '')}" class="user-avatar">
@@ -87,23 +109,21 @@ if tab == "🌍 World Feed":
             # ভিডিও
             st.video(v['video_url'])
             
-            # অটো ভিউ কাউন্ট
             v_id = v['id']
             v_count = v.get("views", 0)
             try:
                 supabase.table("videos").update({"views": v_count + 1}).eq("id", v_id).execute()
             except: pass
 
-            # স্ট্যাটাস (ফলোয়ারসহ ঠিক করা হয়েছে)
+            # ভিউ, লাইক ও ফলোয়ার স্ট্যাটাস (1K, 2K ফরম্যাটে)
             st.markdown(f'''
                 <div style="margin: 12px 0;">
-                    <span class="stat-box">👁️ {v_count + 1} Views</span>
-                    <span class="stat-box">❤️ {v.get("likes", 0)} Likes</span>
-                    <span class="stat-box">👤 {v.get("followers", 0)} Followers</span>
+                    <span class="stat-box">👁️ {format_value(v_count + 1)} Views</span>
+                    <span class="stat-box">❤️ {format_value(v.get("likes", 0))} Likes</span>
+                    <span class="stat-box">👤 {format_value(v.get("followers", 0))} Followers</span>
                 </div>
             ''', unsafe_allow_html=True)
             
-            # লাইক ও ফলো বাটন অ্যাকশন
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"❤️ Like", key=f"l_{v_id}"):
@@ -111,14 +131,13 @@ if tab == "🌍 World Feed":
                     st.rerun()
             with c2:
                 if st.button(f"➕ Follow", key=f"f_{v_id}"):
-                    # ফলোয়ার সংখ্যা ১ বাড়িয়ে আপডেট করা হচ্ছে
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
 
-            # রিওয়ার্ড বাটন
+            # ডায়মন্ড রিওয়ার্ড লিঙ্ক
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Claim Diamond Reward</a>', unsafe_allow_html=True)
             
-            # প্রতিটি ভিডিওর নিচে ছোট ব্যানার
+            # ছোট ব্যানার অ্যাড
             st.components.v1.html(f"""
                 <div style="text-align:center;">
                     <script type="text/javascript">
@@ -130,7 +149,7 @@ if tab == "🌍 World Feed":
             
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # প্রতি ২টি ভিডিও পর বড় অ্যাড
+            # বড় অ্যাড (প্রতি ২ ভিডিও পর)
             if (index + 1) % 2 == 0:
                 st.markdown(f'''
                     <div class="big-ad-box">
@@ -145,13 +164,13 @@ if tab == "🌍 World Feed":
     except Exception as e:
         st.error("Updating Feed...")
 
-# ৫. ভিডিও আপলোড সেকশন
+# ৬. ভিডিও আপলোড
 elif tab == "📤 Upload Video":
     if st.session_state.user:
         st.subheader("Upload Your New Video")
         v_file = st.file_uploader("Select MP4", type=['mp4'])
         if st.button("🚀 Publish") and v_file:
-            with st.spinner("Processing..."):
+            with st.spinner("Publishing..."):
                 try:
                     v_uuid = f"v_{uuid.uuid4()}.mp4"
                     supabase.storage.from_("videos").upload(path=v_uuid, file=v_file.getvalue())
@@ -160,11 +179,9 @@ elif tab == "📤 Upload Video":
                         "video_url": v_url, 
                         "uploader_name": st.session_state.user, 
                         "uploader_pic": st.session_state.pic, 
-                        "likes": 0, 
-                        "followers": 0, 
-                        "views": 0
+                        "likes": 0, "followers": 0, "views": 0
                     }).execute()
-                    st.success("Video Published Successfully!")
+                    st.success("Video Published!")
                 except Exception as e:
                     st.error(f"Error: {e}")
     else:
