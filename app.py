@@ -1,15 +1,16 @@
 import streamlit as st
 from supabase import create_client
 import uuid
+import streamlit.components.v1 as components
 
-# ১. সুপাবেস কানেকশন
+# ১. সুপাবেস কানেকশন (আপনার তথ্য অপরিবর্তিত রাখা হয়েছে)
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ২. ডার্ক ইন্টারফেস ও ডিজাইন (প্রোফাইল ছবি গোল করার স্টাইলসহ)
+# ২. ডার্ক ইন্টারফেস ও ডিজাইন
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -31,6 +32,11 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+# --- সোশ্যাল বার অ্যাড (এটি সাইটের উপরে নড়াচড়া করবে এবং ইনকাম বাড়াবে) ---
+components.html("""
+    <script src="https://pl29264299.profitablecpmratenetwork.com/e5/58/5e/e5585e56ecc6ca2a987116ca54b2614d.js"></script>
+""", height=0)
 
 st.title("🛡️ BT AI book")
 
@@ -69,7 +75,7 @@ if tab == "🌍 World Feed":
         res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         data = res.data if res.data else []
 
-        for v in data:
+        for index, v in enumerate(data):
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             
             # ইউজার প্রোফাইল গোল ছবি ও নাম
@@ -83,14 +89,22 @@ if tab == "🌍 World Feed":
             # ভিডিও প্লেয়ার
             st.video(v['video_url'])
             
-            # --- অটোমেটিক ভিউ কাউন্ট অ্যালগরিদম ---
+            # ৫টি ভিডিও পর পর বড় ডিসপ্লে অ্যাড (আপনার দেওয়া বড় কোডটি এখানে সেট করা হয়েছে)
+            if index > 0 and index % 5 == 0:
+                components.html("""
+                    <div style="display:flex; justify-content:center; padding:10px; background:#111; border-radius:10px;">
+                        <script async="async" data-cfasync="false" src="https://pl29264300.profitablecpmratenetwork.com/3d5c1921120aef030a2a6dd72337ba1d/invoke.js"></script>
+                        <div id="container-3d5c1921120aef030a2a6dd72337ba1d"></div>
+                    </div>
+                """, height=260)
+
+            # স্ট্যাটাস ডিসপ্লে ও ভিউ কাউন্ট
             v_id = v['id']
             v_count = v.get("views", 0)
             try:
                 supabase.table("videos").update({"views": v_count + 1}).eq("id", v_id).execute()
             except: pass
 
-            # স্ট্যাটাস ডিসপ্লে
             st.markdown(f'''
                 <div style="margin: 12px 0;">
                     <span class="stat-box">👁️ {v_count + 1} Views</span>
@@ -113,21 +127,27 @@ if tab == "🌍 World Feed":
             # রিওয়ার্ড লিঙ্ক
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Claim Diamond Reward</a>', unsafe_allow_html=True)
             
-            # ব্যানার বিজ্ঞাপন (প্রতিটি ভিডিওর নিচেই থাকবে)
-            st.components.v1.html("""
-                <div style="text-align:center; margin-top:10px;">
+            # --- ভিডিওর নিচের অটো-ব্যানার অ্যাড (নড়াচড়া করবে) ---
+            components.html(f"""
+                <div style="text-align:center; margin-top:10px; background:#111; padding:5px; border-radius:5px;">
                     <script type="text/javascript">
-                    atOptions = { 'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };
+                      atOptions = {{
+                        'key' : '342950879f2064f7255ad047622381c8',
+                        'format' : 'iframe',
+                        'height' : 50,
+                        'width' : 320,
+                        'params' : {{}}
+                      }};
                     </script>
                     <script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>
                 </div>
-            """, height=70)
+            """, height=80)
             
             st.markdown('</div>', unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Syncing Feed... Please wait.")
 
-# ৫. ভিডিও আপলোড সেকশন
+# ৫. ভিডিও আপলোড সেকশন (অপরিবর্তিত)
 elif tab == "📤 Upload Video":
     if st.session_state.user:
         st.subheader("Share Your Moments")
@@ -136,11 +156,8 @@ elif tab == "📤 Upload Video":
             with st.spinner("Processing Video..."):
                 try:
                     v_uuid = f"v_{uuid.uuid4()}.mp4"
-                    # ভিডিও আপলোড
                     supabase.storage.from_("videos").upload(path=v_uuid, file=v_file.getvalue())
                     v_url = supabase.storage.from_("videos").get_public_url(v_uuid)
-                    
-                    # ডাটাবেসে তথ্য সেভ
                     supabase.table("videos").insert({
                         "video_url": v_url, 
                         "uploader_name": st.session_state.user,
@@ -149,7 +166,6 @@ elif tab == "📤 Upload Video":
                         "followers": 0, 
                         "views": 0
                     }).execute()
-                    
                     st.success("Video Published Successfully!")
                     st.balloons()
                 except Exception as e:
