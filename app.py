@@ -1,6 +1,7 @@
 import streamlit as st
 from supabase import create_client
 import uuid
+import random
 
 # ১. সুপাবেস কানেকশন
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
@@ -9,7 +10,7 @@ supabase = create_client(URL, KEY)
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ২. ভিউ ও ফলোয়ার ফরম্যাট ফাংশন (1K, 2K করার জন্য)
+# ২. ভিউ ও ফলোয়ার ফরম্যাট ফাংশন (1K, 2K সিস্টেম)
 def format_value(value):
     if value >= 1000000:
         return f"{value/1000000:.1f}M"
@@ -17,7 +18,7 @@ def format_value(value):
         return f"{value/1000:.1f}K"
     return str(value)
 
-# ৩. ডিজাইন ও স্টাইল (সব আগের মতো রাখা হয়েছে)
+# ৩. ডিজাইন ও স্টাইল
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -46,7 +47,7 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# ৪. সেশন ও লগইন ম্যানেজমেন্ট (ছবি স্থায়ী করার লজিক)
+# ৪. সেশন ম্যানেজমেন্ট (স্থায়ী প্রোফাইল ছবি)
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -56,16 +57,15 @@ if not st.session_state.user:
     u_name = st.sidebar.text_input("Enter Your Registered Name")
     
     if u_name:
-        # ডাটাবেসে ইউজার চেক করা
         user_data = supabase.table("users").select("*").eq("username", u_name).execute()
         if user_data.data:
-            st.sidebar.info("Account found! Auto-syncing photo...")
+            st.sidebar.info("Account found! Syncing photo...")
             if st.sidebar.button("Login"):
                 st.session_state.user = u_name
                 st.session_state.pic = user_data.data[0]['profile_pic']
                 st.rerun()
         else:
-            st.sidebar.warning("New user? Upload photo once to save forever.")
+            st.sidebar.warning("New user? Upload photo once.")
             u_pic = st.sidebar.file_uploader("Upload Profile Photo", type=['jpg', 'png', 'jpeg'])
             if st.sidebar.button("Create Account"):
                 if u_name and u_pic:
@@ -73,13 +73,12 @@ if not st.session_state.user:
                         fname = f"profile_{uuid.uuid4()}.jpg"
                         supabase.storage.from_("videos").upload(path=fname, file=u_pic.getvalue())
                         p_url = supabase.storage.from_("videos").get_public_url(fname)
-                        # ইউজার সেভ করা
                         supabase.table("users").insert({"username": u_name, "profile_pic": p_url}).execute()
                         st.session_state.user = u_name
                         st.session_state.pic = p_url
                         st.rerun()
                     except:
-                        st.sidebar.error("Network error! Try again.")
+                        st.sidebar.error("Limit or Connection Error!")
 else:
     st.sidebar.image(st.session_state.pic, width=100)
     st.sidebar.success(f"Profile: {st.session_state.user}")
@@ -89,16 +88,19 @@ else:
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৫. মেইন ফিড (ভিডিও ও অ্যাড)
+# ৫. মেইন ফিড (অটোমেটিক র্যান্ডম অ্যালগরিদম)
 if tab == "🌍 World Feed":
     try:
-        res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
+        # ডাটাবেস থেকে সব ডাটা আনা
+        res = supabase.table("videos").select("*").execute()
         data = res.data if res.data else []
+        
+        # ডাটাগুলোকে এলোমেলো (Shuffle) করা যাতে সবসময় নতুন মনে হয়
+        random.shuffle(data)
 
         for index, v in enumerate(data):
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             
-            # ইউজার প্রোফাইল হেড
             st.markdown(f'''
                 <div style="display:flex; align-items:center; margin-bottom:15px;">
                     <img src="{v.get('uploader_pic', '')}" class="user-avatar">
@@ -106,7 +108,6 @@ if tab == "🌍 World Feed":
                 </div>
             ''', unsafe_allow_html=True)
 
-            # ভিডিও
             st.video(v['video_url'])
             
             v_id = v['id']
@@ -115,7 +116,6 @@ if tab == "🌍 World Feed":
                 supabase.table("videos").update({"views": v_count + 1}).eq("id", v_id).execute()
             except: pass
 
-            # ভিউ, লাইক ও ফলোয়ার স্ট্যাটাস (1K, 2K ফরম্যাটে)
             st.markdown(f'''
                 <div style="margin: 12px 0;">
                     <span class="stat-box">👁️ {format_value(v_count + 1)} Views</span>
@@ -134,10 +134,8 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
 
-            # ডায়মন্ড রিওয়ার্ড লিঙ্ক
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Claim Diamond Reward</a>', unsafe_allow_html=True)
             
-            # ছোট ব্যানার অ্যাড
             st.components.v1.html(f"""
                 <div style="text-align:center;">
                     <script type="text/javascript">
@@ -146,10 +144,8 @@ if tab == "🌍 World Feed":
                     <script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script>
                 </div>
             """, height=65)
-            
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # বড় অ্যাড (প্রতি ২ ভিডিও পর)
             if (index + 1) % 2 == 0:
                 st.markdown(f'''
                     <div class="big-ad-box">
@@ -162,7 +158,7 @@ if tab == "🌍 World Feed":
                 ''', unsafe_allow_html=True)
 
     except Exception as e:
-        st.error("Updating Feed...")
+        st.error("Feed is syncing...")
 
 # ৬. ভিডিও আপলোড
 elif tab == "📤 Upload Video":
@@ -170,19 +166,17 @@ elif tab == "📤 Upload Video":
         st.subheader("Upload Your New Video")
         v_file = st.file_uploader("Select MP4", type=['mp4'])
         if st.button("🚀 Publish") and v_file:
-            with st.spinner("Publishing..."):
+            with st.spinner("Processing..."):
                 try:
                     v_uuid = f"v_{uuid.uuid4()}.mp4"
                     supabase.storage.from_("videos").upload(path=v_uuid, file=v_file.getvalue())
                     v_url = supabase.storage.from_("videos").get_public_url(v_uuid)
                     supabase.table("videos").insert({
-                        "video_url": v_url, 
-                        "uploader_name": st.session_state.user, 
-                        "uploader_pic": st.session_state.pic, 
-                        "likes": 0, "followers": 0, "views": 0
+                        "video_url": v_url, "uploader_name": st.session_state.user, 
+                        "uploader_pic": st.session_state.pic, "likes": 0, "followers": 0, "views": 0
                     }).execute()
                     st.success("Video Published!")
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error("Limit Reached! Cannot upload more, but feed is active.")
     else:
         st.warning("Please login first.")
