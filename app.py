@@ -26,13 +26,13 @@ STORAGE_KEYS = [
     {"url": "https://bczxwfclimiaaljjfegq.supabase.co", "key": "sb_secret_7rFR003t7a_N_VIEbf7aAw_WfPL7xRs"},
 ]
 
-MAX_VIDEOS = 100 # ১০০ ভিডিওর বেশি হলে অটো ডিলিট হবে
-DAILY_LIMIT = 3  # প্রতিদিন ৩টি ভিডিও লিমিট
+MAX_VIDEOS = 100 
+DAILY_LIMIT = 3  
 # --- [জংশন বক্স শেষ] ---
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# --- অটো ডিলিট ফাংশন (সুপারভাইজার লোড কমাতে) ---
+# --- অটো ডিলিট ফাংশন ---
 def delete_oldest_video():
     try:
         res = supabase.table("videos").select("*").order("created_at", desc=False).limit(1).execute()
@@ -59,12 +59,11 @@ st.markdown("""<style>.stApp { background-color: #000; color: #fff; }.video-card
 
 st.title("🛡️ BT AI book")
 
-# ইউজার সেশন ম্যানেজমেন্ট
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
 
-# লগইন সিস্টেম
+# লগইন ও প্রোফাইল
 if not st.session_state.user:
     st.sidebar.header("🔐 User Login")
     u_name = st.sidebar.text_input("Enter Your Registered Name")
@@ -95,50 +94,55 @@ else:
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# --- হাই স্পিড ওয়ার্ল্ড ফিড (অ্যালগরিদম) ---
 if tab == "🌍 World Feed":
     try:
-        # সব ভিডিও ডাটাবেজ থেকে আনা
         res = supabase.table("videos").select("*").execute()
         data = res.data if res.data else []
-        
-        # অ্যালগরিদম: ভিডিওগুলোকে এলোমেলো করা (যাতে পুরানো-নতুন মিক্স হয়ে ১টি ১টি করে আসে)
         random.shuffle(data)
         
-        # লুপের মাধ্যমে একটি একটি ভিডিও কার্ড তৈরি
         for index, v in enumerate(data):
             v_id = v['id']
+            # অটো ভিউ অ্যালগরিদম (প্রতি লোডে ১-৫টি ভিউ অটো বাড়বে ইমপ্রেশন বাড়াতে)
+            auto_views = v.get("views", 0) + random.randint(1, 5)
+            
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:15px;"><img src="{v.get("uploader_pic", "")}" class="user-avatar"><span class="username-text">{v.get("uploader_name", "BT User")}</span></div>', unsafe_allow_html=True)
             
-            # ভিডিও প্লেয়ার
             st.video(v['video_url'])
             
-            # ভিউ আপডেট
-            try: supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
+            # ডাটাবেজে অটো ভিউ আপডেট
+            try: supabase.table("videos").update({"views": auto_views}).eq("id", v_id).execute()
             except: pass
             
-            st.markdown(f'<div style="margin: 12px 0;"><span class="stat-box">👁️ {format_value(v.get("views", 0)+1)} Views</span><span class="stat-box">❤️ {format_value(v.get("likes", 0))} Likes</span></div>', unsafe_allow_html=True)
+            # ফলোয়ার ও লাইক প্রদর্শন
+            st.markdown(f"""
+                <div style="margin: 12px 0;">
+                    <span class="stat-box">👁️ {format_value(auto_views)} Views</span>
+                    <span class="stat-box">❤️ {format_value(v.get("likes", 0))} Likes</span>
+                    <span class="stat-box">👥 {format_value(v.get("followers", 0))} Followers</span>
+                </div>
+            """, unsafe_allow_html=True)
             
-            col1, col2 = st.columns(2)
-            with col1:
+            c1, c2 = st.columns(2)
+            with c1:
                 if st.button(f"❤️ Like", key=f"l_{v_id}"):
                     supabase.table("videos").update({"likes": v.get("likes", 0) + 1}).eq("id", v_id).execute(); st.rerun()
-            with col2:
+            with c2:
                 if st.button(f"➕ Follow", key=f"f_{v_id}"):
-                    supabase.table("followers").insert({"user": v.get("uploader_name"), "follower": st.session_state.user}).execute()
-                    st.success("Followed!")
+                    # ফলোয়ার সংখ্যা ১ বাড়ানো
+                    new_fol = v.get("followers", 0) + 1
+                    supabase.table("videos").update({"followers": new_fol}).eq("id", v_id).execute()
+                    st.success("Following!")
+                    st.rerun()
 
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Claim Diamond Reward</a>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # প্রতি ২টি ভিডিওর পর একটি বিজ্ঞাপন (সার্ভার লোড কমাতে সাহায্য করে)
             if (index + 1) % 2 == 0:
                 st.components.v1.html("""<div style="text-align:center;"><script type="text/javascript">atOptions = { 'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };</script><script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script></div>""", height=70)
                 
-    except: st.error("ভিডিও লোড হতে সময় লাগছে... রিফ্রেশ করুন।")
+    except: st.error("Syncing...")
 
-# --- আপলোড সেকশন ---
 elif tab == "📤 Upload Video":
     if st.session_state.user:
         v_file = st.file_uploader("Select MP4 (Max 15 Sec)", type=['mp4'])
@@ -147,48 +151,43 @@ elif tab == "📤 Upload Video":
             check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
             
             if len(check.data) >= DAILY_LIMIT:
-                st.error(f"❌ ডেইলি লিমিট শেষ! আপনি কালকে আবার আপলোড করতে পারবেন।")
+                st.error(f"❌ ডেইলি লিমিট শেষ!")
             else:
-                with st.spinner("🤖 ভিডিও প্রসেস হচ্ছে..."):
+                with st.spinner("🤖 প্রসেসিং..."):
                     try:
-                        # অটো ডিলিট চেক (১০০ এর বেশি হলে)
                         count_res = supabase.table("videos").select("*", count='exact').execute()
                         if count_res.count and count_res.count >= MAX_VIDEOS:
                             delete_oldest_video()
                         
                         temp_in, temp_out = "temp_in.mp4", "temp_out.mp4"
                         with open(temp_in, "wb") as f: f.write(v_file.getvalue())
-                        
                         clip = VideoFileClip(temp_in)
                         duration = clip.duration
                         clip.close()
                         
                         if duration > 16:
-                            st.error(f"❌ ভিডিও ১৫ সেকেন্ডের বেশি!")
+                            st.error("❌ ১৫ সেকেন্ডের বেশি!")
                             os.remove(temp_in)
                         else:
-                            # হাই স্পিড কনভার্ট এবং সাইজ অপ্টিমাইজেশন
                             subprocess.run(f"ffmpeg -i {temp_in} -vcodec libx264 -crf 28 -maxrate 1M -bufsize 2M -y {temp_out}", shell=True)
                             v_uuid = f"v_{uuid.uuid4()}.mp4"
-                            
-                            # র‍্যান্ডম স্টোরেজ চাবি নির্বাচন
                             target = random.choice(STORAGE_KEYS)
                             storage_bot = create_client(target['url'], target['key'])
-                            
                             with open(temp_out, "rb") as f:
                                 storage_bot.storage.from_("videos").upload(path=v_uuid, file=f.read())
-                            
                             v_url = storage_bot.storage.from_("videos").get_public_url(v_uuid)
                             
-                            # ডাটাবেজে তথ্য সেভ
+                            # নতুন ভিডিওতে কিছু বোনাস ভিউ ও ফলোয়ার দিয়ে শুরু করা (ইমপ্রেশন বাড়াতে)
                             supabase.table("videos").insert({
                                 "video_url": v_url, 
                                 "uploader_name": st.session_state.user, 
                                 "uploader_pic": st.session_state.pic, 
-                                "likes": 0, "views": 0, 
+                                "likes": random.randint(5, 15), 
+                                "views": random.randint(50, 100), 
+                                "followers": random.randint(1, 10),
                                 "created_at": datetime.now().isoformat()
                             }).execute()
                             
-                            st.success("✅ ভিডিও সফলভাবে পাবলিশ হয়েছে!")
+                            st.success("✅ পাবলিশ হয়েছে!")
                             os.remove(temp_in); os.remove(temp_out)
                     except Exception as e: st.error(f"Error: {e}")
