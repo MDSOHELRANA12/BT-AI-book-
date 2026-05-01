@@ -8,20 +8,50 @@ from datetime import datetime
 from moviepy.editor import VideoFileClip 
 
 # --- [জংশন বক্স শুরু] ---
-# এখানে আপনার মেইন ডাটাবেস চাবি
 MAIN_URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 MAIN_KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(MAIN_URL, MAIN_KEY)
 
-# ৮০টি চাবির গোডাউন (নিচে আপনি শুধু এখানে চাবি বাড়াবেন)
+# সোহেল ভাইয়ের ১০টি স্টোরেজ চাবি
 STORAGE_KEYS = [
-    {"url": MAIN_URL, "key": MAIN_KEY}, # প্রথম চাবি হিসেবে আপনার মেইনটা থাকল
+    {"url": "https://wzwhcuifcdkhjkvhndcp.supabase.co", "key": "sb_secret_bt9SDKvRqm9J91cZD-MAkw_caf0Gnkh"},
+    {"url": "https://fypvwatkffekksbceofu.supabase.co", "key": "sb_secret_JeRIhaN33UZe9nTKgfMzwQ_Kc5rHL8o"},
+    {"url": "https://osdjwtywivieuetnhxyo.supabase.co", "key": "sb_secret_ffiZGQ8XSUdAWXa26Ut2ww_-dVCfJy4"},
+    {"url": "https://fiqjddgdpirdpbaccynt.supabase.co", "key": "sb_secret_kKfsUaR3Eyxp-W-ZLQYftg_9THDBB3C"},
+    {"url": "https://ebkpbdjfeabqfwbkgvrg.supabase.co", "key": "sb_secret_HuxmaOONEyvFBqDB2yH_IQ_OcC6Pm4b"},
+    {"url": "https://xjquucfkndfzawjscmdb.supabase.co", "key": "sb_secret_dRBwgkxRhwLwwYLSU92VBw_NUKkyX32"},
+    {"url": "https://ziliihcgqsxnttrtupgm.supabase.co", "key": "sb_secret_GyhZd_60lAW6np0uBNjuBA_amZpgwUl"},
+    {"url": "https://optlxxgrdmrvvkzwkmui.supabase.co", "key": "sb_secret_aKImpLhPtUkF3ggXgDKGRw_BJC7Qd_M"},
+    {"url": "https://owlhzlgegmezedskzwgl.supabase.co", "key": "sb_secret_wOMZKz1TtugQNXFYgV4d4g_K82EnAl1"},
+    {"url": "https://bczxwfclimiaaljjfegq.supabase.co", "key": "sb_secret_7rFR003t7a_N_VIEbf7aAw_WfPL7xRs"},
 ]
+
+MAX_VIDEOS = 100 # এখানে ১০০ মানে ১০০টা ভিডিও জমা হলে পুরানোটা মুছবে। আপনি চাইলে ১০০০ করে দিতে পারেন।
 # --- [জংশন বক্স শেষ] ---
 
-st.markdown("""<div style="display: none;"><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1831608481745604" crossorigin="anonymous"></script><meta name="google-adsense-account" content="ca-pub-1831608481745604"></div>""", unsafe_allow_html=True)
-
 st.set_page_config(page_title="BT AI book", layout="wide")
+
+# --- অটো ডিলিট ফাংশন ---
+def delete_oldest_video():
+    try:
+        # মেইন টেবিল থেকে সবচেয়ে পুরানো ভিডিওর তথ্য নেওয়া
+        res = supabase.table("videos").select("*").order("created_at", desc=False).limit(1).execute()
+        if res.data:
+            old_video = res.data[0]
+            v_url = old_video['video_url']
+            v_id = old_video['id']
+            
+            # URL দেখে চাবি খুঁজে বের করা এবং স্টোরেজ থেকে ভিডিও ডিলিট করা
+            for store in STORAGE_KEYS:
+                if store['url'] in v_url:
+                    s_bot = create_client(store['url'], store['key'])
+                    file_path = v_url.split('/')[-1]
+                    s_bot.storage.from_("videos").remove([file_path])
+                    break
+            
+            # মেইন ডাটাবেজ টেবিল থেকে ডিলিট করা
+            supabase.table("videos").delete().eq("id", v_id).execute()
+    except: pass
 
 def format_value(value):
     if value >= 1000000: return f"{value/1000000:.1f}M"
@@ -85,7 +115,8 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"likes": v.get("likes", 0) + 1}).eq("id", v_id).execute(); st.rerun()
             with c2:
                 if st.button(f"➕ Follow", key=f"f_{v_id}"):
-                    supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute(); st.rerun()
+                    supabase.table("followers").insert({"user": v.get("uploader_name"), "follower": st.session_state.user}).execute() # ফলোয়ারের আলাদা হিসাব রাখা যায়
+                    st.rerun()
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Claim Diamond Reward</a>', unsafe_allow_html=True)
             st.components.v1.html("""<div style="text-align:center;"><script type="text/javascript">atOptions = { 'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };</script><script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script></div>""", height=65)
             st.markdown('</div>', unsafe_allow_html=True)
@@ -97,34 +128,33 @@ elif tab == "📤 Upload Video":
     if st.session_state.user:
         v_file = st.file_uploader("Select MP4 (Max 15 Sec)", type=['mp4'])
         if st.button("🚀 Publish") and v_file:
-            today = datetime.now().strftime("%Y-%m-%d")
-            check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
-            if len(check.data) >= 1:
-                st.error("❌ আপনি আজকে ১টি ভিডিও আপলোড করেছেন।")
-            else:
-                with st.spinner("🤖 প্রসেস হচ্ছে..."):
-                    try:
-                        temp_in, temp_out = "temp_in.mp4", "temp_out.mp4"
-                        with open(temp_in, "wb") as f: f.write(v_file.getvalue())
-                        clip = VideoFileClip(temp_in)
-                        duration = clip.duration
-                        clip.close()
-                        if duration > 16:
-                            st.error(f"❌ ভিডিও ১৫ সেকেন্ডের বেশি!")
-                            os.remove(temp_in)
-                        else:
-                            subprocess.run(f"ffmpeg -i {temp_in} -vcodec libx264 -crf 28 -maxrate 1M -bufsize 2M -y {temp_out}", shell=True)
-                            v_uuid = f"v_{uuid.uuid4()}.mp4"
-                            
-                            # --- [কারেন্টের কানেকশন লাইন] ---
-                            target = random.choice(STORAGE_KEYS)
-                            storage_bot = create_client(target['url'], target['key'])
-                            with open(temp_out, "rb") as f:
-                                storage_bot.storage.from_("videos").upload(path=v_uuid, file=f.read())
-                            v_url = storage_bot.storage.from_("videos").get_public_url(v_uuid)
-                            # ------------------------------
-                            
-                            supabase.table("videos").insert({"video_url": v_url, "uploader_name": st.session_state.user, "uploader_pic": st.session_state.pic, "likes": 0, "followers": 0, "views": 0, "created_at": datetime.now().isoformat()}).execute()
-                            st.success("✅ ভিডিও সফলভাবে আপলোড হয়েছে!")
-                            os.remove(temp_in); os.remove(temp_out)
-                    except Exception as e: st.error(f"Error: {e}")
+            with st.spinner("🤖 প্রসেস হচ্ছে..."):
+                try:
+                    # --- অটো ডিলিট চেক ---
+                    count_res = supabase.table("videos").select("*", count='exact').execute()
+                    if count_res.count and count_res.count >= MAX_VIDEOS:
+                        delete_oldest_video()
+                    
+                    temp_in, temp_out = "temp_in.mp4", "temp_out.mp4"
+                    with open(temp_in, "wb") as f: f.write(v_file.getvalue())
+                    clip = VideoFileClip(temp_in)
+                    duration = clip.duration
+                    clip.close()
+                    
+                    if duration > 16:
+                        st.error(f"❌ ভিডিও ১৫ সেকেন্ডের বেশি!")
+                        os.remove(temp_in)
+                    else:
+                        subprocess.run(f"ffmpeg -i {temp_in} -vcodec libx264 -crf 28 -maxrate 1M -bufsize 2M -y {temp_out}", shell=True)
+                        v_uuid = f"v_{uuid.uuid4()}.mp4"
+                        
+                        target = random.choice(STORAGE_KEYS)
+                        storage_bot = create_client(target['url'], target['key'])
+                        with open(temp_out, "rb") as f:
+                            storage_bot.storage.from_("videos").upload(path=v_uuid, file=f.read())
+                        v_url = storage_bot.storage.from_("videos").get_public_url(v_uuid)
+                        
+                        supabase.table("videos").insert({"video_url": v_url, "uploader_name": st.session_state.user, "uploader_pic": st.session_state.pic, "likes": 0, "followers": 0, "views": 0, "created_at": datetime.now().isoformat()}).execute()
+                        st.success("✅ ভিডিও সফলভাবে আপলোড হয়েছে!")
+                        os.remove(temp_in); os.remove(temp_out)
+                except Exception as e: st.error(f"Error: {e}")
