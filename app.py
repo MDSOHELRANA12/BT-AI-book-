@@ -3,30 +3,29 @@ from supabase import create_client
 import uuid
 import random
 
-# ১. গুগল অ্যাডসেন্স ভেরিফিকেশন কোড (আপনার পাবলিশার আইডি এখানে বসানো হয়েছে)
-# এই অংশটি গুগলকে আপনার ডোমেইন এবং পাবলিশার আইডি চিনতে সাহায্য করবে
+# ১. গুগল অ্যাডসেন্স ভেরিফিকেশন এবং পাবলিশার আইডি (এটি অদৃশ্য থাকবে)
 st.markdown("""
-    <head>
+    <div style="display: none;">
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1831608481745604" crossorigin="anonymous"></script>
-        
         <meta name="google-adsense-account" content="ca-pub-1831608481745604">
-    </head>
+    </div>
     """, unsafe_allow_html=True)
 
-# ২. সুপাবেস কানেকশন ও কনফিগারেশন
+# ২. সুপাবেস কানেকশন
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
 
+# ৩. পেজ সেটআপ
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ৩. হেল্পার ফাংশন
+# ৪. হেল্পার ফাংশন
 def format_value(value):
     if value >= 1000000: return f"{value/1000000:.1f}M"
     elif value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
-# ৪. ডিজাইন ও সিএসএস স্টাইল (আপনার অরিজিনাল ব্ল্যাক থিম)
+# ৫. ডিজাইন ও স্টাইল (আপনার অরিজিনাল কাঠামো)
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -44,14 +43,14 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# ৫. সেশন স্টেট ও লগইন সিস্টেম
+# ৬. লগইন সিস্টেম
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
 
 if not st.session_state.user:
     st.sidebar.header("🔐 User Login")
-    u_name = st.sidebar.text_input("Enter Registered Name")
+    u_name = st.sidebar.text_input("Enter Your Registered Name")
     if u_name:
         user_data = supabase.table("users").select("*").eq("username", u_name).execute()
         if user_data.data:
@@ -79,13 +78,12 @@ else:
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৬. মেইন ফিড সেকশন
+# ৭. মেইন ফিড
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").execute()
         data = res.data if res.data else []
         random.shuffle(data)
-
         for index, v in enumerate(data):
             v_id = v['id']
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
@@ -106,8 +104,6 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute(); st.rerun()
 
             st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-reward">💎 Claim Diamond Reward</a>', unsafe_allow_html=True)
-            
-            # ভিডিওর নিচে ছোট ব্যানার অ্যাড
             st.components.v1.html("""<div style="text-align:center;"><script type="text/javascript">atOptions = { 'key' : '342950879f2064f7255ad047622381c8', 'format' : 'iframe', 'height' : 50, 'width' : 320, 'params' : {} };</script><script src="https://www.highperformanceformat.com/342950879f2064f7255ad047622381c8/invoke.js"></script></div>""", height=65)
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -115,7 +111,7 @@ if tab == "🌍 World Feed":
                 st.markdown(f'<div class="big-ad-box"><p style="color:#00ff00; font-size:18px; font-weight:bold;">🔥 BIG REWARD WAITING 🔥</p><a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" style="background:#ed1c24; color:white; padding:12px 35px; border-radius:30px; text-decoration:none; font-weight:bold; display:inline-block; margin-top:10px;">CLICK FOR BIG AD REWARD</a></div>', unsafe_allow_html=True)
     except: st.error("Syncing Feed...")
 
-# ৭. ভিডিও আপলোড সেকশন
+# ৮. ভিডিও আপলোড
 elif tab == "📤 Upload Video":
     if st.session_state.user:
         v_file = st.file_uploader("Select MP4", type=['mp4'])
@@ -126,5 +122,5 @@ elif tab == "📤 Upload Video":
                     supabase.storage.from_("videos").upload(path=v_uuid, file=v_file.getvalue())
                     v_url = supabase.storage.from_("videos").get_public_url(v_uuid)
                     supabase.table("videos").insert({"video_url": v_url, "uploader_name": st.session_state.user, "uploader_pic": st.session_state.pic, "likes": 0, "followers": 0, "views": 0}).execute()
-                    st.success("✅ সোহেল ভাই, সব অ্যাডসহ ভিডিও লাইভ হয়েছে!")
-                except: st.error("Wait a minute and try again.")
+                    st.success("✅ সোহেল ভাই, সব লাইভ হয়েছে!")
+                except: st.error("Try again later.")
