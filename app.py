@@ -2,8 +2,12 @@ import streamlit as st
 from supabase import create_client
 import uuid
 import random
+import os
+import subprocess
+from datetime import datetime
+from moviepy.editor import VideoFileClip 
 
-# ১. গুগল অ্যাডসেন্স ভেরিফিকেশন এবং পাবলিশার আইডি (এটি অদৃশ্য থাকবে)
+# ১. গুগল অ্যাডসেন্স ভেরিফিকেশন (অদৃশ্য)
 st.markdown("""
     <div style="display: none;">
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1831608481745604" crossorigin="anonymous"></script>
@@ -25,7 +29,7 @@ def format_value(value):
     elif value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
-# ৫. ডিজাইন ও স্টাইল (আপনার অরিজিনাল কাঠামো)
+# ৫. ডিজাইন ও স্টাইল
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -111,16 +115,54 @@ if tab == "🌍 World Feed":
                 st.markdown(f'<div class="big-ad-box"><p style="color:#00ff00; font-size:18px; font-weight:bold;">🔥 BIG REWARD WAITING 🔥</p><a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" style="background:#ed1c24; color:white; padding:12px 35px; border-radius:30px; text-decoration:none; font-weight:bold; display:inline-block; margin-top:10px;">CLICK FOR BIG AD REWARD</a></div>', unsafe_allow_html=True)
     except: st.error("Syncing Feed...")
 
-# ৮. ভিডিও আপলোড
+# ৮. ভিডিও আপলোড (সংশোধিত অংশ)
 elif tab == "📤 Upload Video":
     if st.session_state.user:
-        v_file = st.file_uploader("Select MP4", type=['mp4'])
+        v_file = st.file_uploader("Select MP4 (Max 15 Sec)", type=['mp4'])
         if st.button("🚀 Publish") and v_file:
-            with st.spinner("🤖 পাবলিশ হচ্ছে..."):
-                try:
-                    v_uuid = f"v_{uuid.uuid4()}.mp4"
-                    supabase.storage.from_("videos").upload(path=v_uuid, file=v_file.getvalue())
-                    v_url = supabase.storage.from_("videos").get_public_url(v_uuid)
-                    supabase.table("videos").insert({"video_url": v_url, "uploader_name": st.session_state.user, "uploader_pic": st.session_state.pic, "likes": 0, "followers": 0, "views": 0}).execute()
-                    st.success("✅ সোহেল ভাই, সব লাইভ হয়েছে!")
-                except: st.error("Try again later.")
+            
+            today = datetime.now().strftime("%Y-%m-%d")
+            check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
+            
+            if len(check.data) >= 1:
+                st.error("❌ দুঃখিত! আপনি আজকে ১টি ভিডিও আপলোড করেছেন। আবার আগামীকাল পারবেন।")
+            else:
+                with st.spinner("🤖 ওজন কমানো হচ্ছে..."):
+                    try:
+                        temp_in = "temp_in.mp4"
+                        temp_out = "temp_out.mp4"
+                        with open(temp_in, "wb") as f:
+                            f.write(v_file.getvalue())
+
+                        clip = VideoFileClip(temp_in)
+                        duration = clip.duration
+                        clip.close()
+
+                        if duration > 16:
+                            st.error(f"❌ ভিডিও {duration:.1f} সেকেন্ড! ১৫ সেকেন্ডের বেশি আপলোড করা যাবে না।")
+                            os.remove(temp_in)
+                        else:
+                            # FFmpeg দিয়ে ২ এমবি করা হচ্ছে
+                            compress_cmd = f"ffmpeg -i {temp_in} -vcodec libx264 -crf 28 -maxrate 1M -bufsize 2M -y {temp_out}"
+                            subprocess.run(compress_cmd, shell=True)
+
+                            v_uuid = f"v_{uuid.uuid4()}.mp4"
+                            with open(temp_out, "rb") as f:
+                                supabase.storage.from_("videos").upload(path=v_uuid, file=f.read())
+                            
+                            v_url = supabase.storage.from_("videos").get_public_url(v_uuid)
+                            
+                            supabase.table("videos").insert({
+                                "video_url": v_url, 
+                                "uploader_name": st.session_state.user, 
+                                "uploader_pic": st.session_state.pic, 
+                                "likes": 0, "followers": 0, "views": 0,
+                                "created_at": datetime.now().isoformat()
+                            }).execute()
+
+                            st.success("✅ ভিডিওটি ২ এমবি-তে কনভার্ট হয়ে আপলোড হয়েছে!")
+                            
+                            os.remove(temp_in)
+                            os.remove(temp_out)
+                    except Exception as e:
+                        st.error(f"Error: {e}")
