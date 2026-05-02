@@ -7,6 +7,7 @@ import subprocess
 from datetime import datetime
 import streamlit.components.v1 as components
 
+(google-site-verification: google7ed30cce8d663bc4.html)
 # --- ১. গুগল ভেরিফিকেশন নতুন পদ্ধতি (URL Parameter দিয়ে) ---
 # গুগল যখন আপনার সাইটে এই ফাইলটি খুঁজবে, কোডটি তখন তাকে 'google-site-verification' দেখাবে
 query_params = st.query_params
