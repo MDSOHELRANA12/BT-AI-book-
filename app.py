@@ -27,16 +27,20 @@ STORAGE_KEYS = [
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
+# --- গুগল ভেরিফিকেশন কোড এখানে (HTML Header-এ যোগ করা হয়েছে) ---
+st.markdown("""
+    <head>
+        <meta name="google-site-verification" content="g3O60nQs2GvZwmbI9SnedDrlRYi_Upwtzs3" />
+    </head>
+""", unsafe_allow_html=True)
+
 # ২. ফরম্যাট ও অটো ক্লিনআপ (প্রতি চাবিতে ৫০০ লিমিট)
 def format_value(value):
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
 def auto_cleanup(target_storage_url):
-    # শুধুমাত্র যে চাবিতে আপলোড হচ্ছে, সেই চাবির ভিডিও চেক করবে
     res = supabase.table("videos").select("id", "video_url").like("video_url", f"%{target_storage_url}%").order("created_at", desc=False).execute()
-    
-    # আপনার রিকোয়ারমেন্ট অনুযায়ী ৫০০ লিমিট
     if len(res.data) >= 500:
         old = res.data[0]
         v_url = old['video_url']
@@ -49,7 +53,7 @@ def auto_cleanup(target_storage_url):
                     pass
         supabase.table("videos").delete().eq("id", old['id']).execute()
 
-# ৩. স্টাইল ও ডিজাইন (জিরো ফিগার সেটিং)
+# ৩. স্টাইল ও ডিজাইন
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -67,7 +71,7 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# ৪. লগইন সিস্টেম (আগের সব ঠিক আছে)
+# ৪. লগইন সিস্টেম
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -101,7 +105,7 @@ else:
 
 tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৫. মেইন ফিড (ভিউ, লাইক, ফলো বাটনসহ)
+# ৫. মেইন ফিড
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").execute()
@@ -148,7 +152,7 @@ if tab == "🌍 World Feed":
             st.markdown('</div>', unsafe_allow_html=True)
     except: st.error("Feed Error")
 
-# ৬. ভিডিও আপলোড (৩টি লিমিট + ১৫ সেঃ + ২ এমবি + অটো ভাইরাল + ৫০০ ভিডিও চাবি লিমিট)
+# ৬. ভিডিও আপলোড
 elif tab == "📤 Upload Video":
     if not st.session_state.user: st.warning("Login first!")
     else:
@@ -162,7 +166,7 @@ elif tab == "📤 Upload Video":
             else:
                 with st.spinner("Publishing..."):
                     target = random.choice(STORAGE_KEYS)
-                    auto_cleanup(target['url']) # ভিডিও আপলোডের আগে চাবির লিমিট (৫০০) চেক করবে
+                    auto_cleanup(target['url'])
                     
                     t_in, t_out = "raw.mp4", "final.mp4"
                     with open(t_in, "wb") as f: f.write(file.getvalue())
