@@ -27,21 +27,26 @@ STORAGE_KEYS = [
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ২. ফরম্যাট ও অটো ক্লিনআপ (১০০ লিমিট)
+# ২. ফরম্যাট ও অটো ক্লিনআপ (প্রতি চাবিতে ৫০০ লিমিট)
 def format_value(value):
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
-def auto_cleanup():
-    res = supabase.table("videos").select("id", "video_url").order("created_at", desc=False).execute()
-    if len(res.data) >= 100:
+def auto_cleanup(target_storage_url):
+    # শুধুমাত্র যে চাবিতে আপলোড হচ্ছে, সেই চাবির ভিডিও চেক করবে
+    res = supabase.table("videos").select("id", "video_url").like("video_url", f"%{target_storage_url}%").order("created_at", desc=False).execute()
+    
+    # আপনার রিকোয়ারমেন্ট অনুযায়ী ৫০০ লিমিট
+    if len(res.data) >= 500:
         old = res.data[0]
         v_url = old['video_url']
         v_name = v_url.split('/')[-1]
         for s in STORAGE_KEYS:
             if s['url'] in v_url:
-                try: create_client(s['url'], s['key']).storage.from_("videos").remove([v_name])
-                except: pass
+                try: 
+                    create_client(s['url'], s['key']).storage.from_("videos").remove([v_name])
+                except: 
+                    pass
         supabase.table("videos").delete().eq("id", old['id']).execute()
 
 # ৩. স্টাইল ও ডিজাইন (জিরো ফিগার সেটিং)
@@ -62,7 +67,7 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# ৪. লগইন সিস্টেম
+# ৪. লগইন সিস্টেম (আগের সব ঠিক আছে)
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -96,7 +101,7 @@ else:
 
 tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৫. মেইন ফিড (সব বাটনসহ)
+# ৫. মেইন ফিড (ভিউ, লাইক, ফলো বাটনসহ)
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").execute()
@@ -109,7 +114,6 @@ if tab == "🌍 World Feed":
             st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:12px;"><img src="{v.get("uploader_pic", "")}" class="user-avatar"><b>{v.get("uploader_name")}</b></div>', unsafe_allow_html=True)
             st.video(v['video_url'])
             
-            # ভিউ আপডেট
             try: supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
             except: pass
 
@@ -144,36 +148,34 @@ if tab == "🌍 World Feed":
             st.markdown('</div>', unsafe_allow_html=True)
     except: st.error("Feed Error")
 
-# ৬. ভিডিও আপলোড (৩টি লিমিট + ১৫ সেঃ + ২ এমবি + অটো ভাইরাল)
+# ৬. ভিডিও আপলোড (৩টি লিমিট + ১৫ সেঃ + ২ এমবি + অটো ভাইরাল + ৫০০ ভিডিও চাবি লিমিট)
 elif tab == "📤 Upload Video":
     if not st.session_state.user: st.warning("Login first!")
     else:
         file = st.file_uploader("Select Video", type=['mp4'])
         if st.button("🚀 Publish Video") and file:
-            # --- ১. দৈনিক ৩টি ভিডিও লিমিট চেক ---
             today = datetime.now().strftime("%Y-%m-%d")
             check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
             
             if len(check.data) >= 3:
-                st.error("Today's limit (3 videos) reached! Come back tomorrow.")
+                st.error("Daily limit (3 videos) reached!")
             else:
-                with st.spinner("Processing & Viral Optimizing..."):
-                    auto_cleanup() # ১০০ ভিডিওর লিমিট চেক
+                with st.spinner("Publishing..."):
+                    target = random.choice(STORAGE_KEYS)
+                    auto_cleanup(target['url']) # ভিডিও আপলোডের আগে চাবির লিমিট (৫০০) চেক করবে
+                    
                     t_in, t_out = "raw.mp4", "final.mp4"
                     with open(t_in, "wb") as f: f.write(file.getvalue())
                     
-                    # --- ২. FFMPEG: ১৫ সেকেন্ড + ২ এমবি সাইজ ---
                     cmd = f'ffmpeg -i {t_in} -t 15 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 1.9M -y {t_out}'
                     subprocess.run(cmd, shell=True)
                     
-                    target = random.choice(STORAGE_KEYS)
                     s_bot = create_client(target['url'], target['key'])
                     v_name = f"v_{uuid.uuid4()}.mp4"
                     with open(t_out, "rb") as f: s_bot.storage.from_("videos").upload(v_name, f.read())
                     
                     v_url = s_bot.storage.from_("videos").get_public_url(v_name)
                     
-                    # --- ৩. অটো ভাইরাল লজিক (ভিউ ও ফলোয়ার) ---
                     auto_views = random.randint(850, 1200)
                     auto_followers = random.randint(100, 150)
                     
@@ -185,6 +187,6 @@ elif tab == "📤 Upload Video":
                         "followers": auto_followers
                     }).execute()
                     
-                    st.success(f"Published! Added {auto_views} Views & {auto_followers} Followers!")
+                    st.success(f"Published! Added {auto_views} Views!")
                     os.remove(t_in); os.remove(t_out)
                     st.rerun()
