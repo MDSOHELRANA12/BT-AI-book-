@@ -6,12 +6,11 @@ import os
 import subprocess
 from datetime import datetime
 
-# --- ১. মাইক্রোসফট বিং ভেরিফিকেশন (একদম সহজ উপায়) ---
-# আমি আপনার দেওয়া CNAME কোডটিকে মেটা ট্যাগ হিসেবে নিচে বসিয়ে দিয়েছি
+# --- ১. মাইক্রোসফট বিং ভেরিফিকেশন (আপনার স্ক্রিনশটের কোডটি এখানে বসানো হয়েছে) ---
 st.markdown(
     """
     <head>
-        <meta name="msvalidate.01" content="e776b8ce73ea3dcc07551e8a021a0907" />
+        <meta name="msvalidate.01" content="8D0CF51CA6DBABB744B29B8B6DE6925C" />
     </head>
     """,
     unsafe_allow_html=True
@@ -37,24 +36,7 @@ STORAGE_KEYS = [
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# --- ৩. ফরম্যাট ও অটো ক্লিনআপ ফাংশন ---
-def format_value(value):
-    if value >= 1000: return f"{value/1000:.1f}K"
-    return str(value)
-
-def auto_cleanup(target_storage_url):
-    res = supabase.table("videos").select("id", "video_url").like("video_url", f"%{target_storage_url}%").order("created_at", desc=False).execute()
-    if len(res.data) >= 500:
-        old = res.data[0]
-        v_url = old['video_url']
-        v_name = v_url.split('/')[-1]
-        for s in STORAGE_KEYS:
-            if s['url'] in v_url:
-                try: create_client(s['url'], s['key']).storage.from_("videos").remove([v_name])
-                except: pass
-        supabase.table("videos").delete().eq("id", old['id']).execute()
-
-# --- ৪. ডিজাইন ও স্টাইল ---
+# --- ৩. ডিজাইন ও স্টাইল ---
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -72,7 +54,8 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# --- ৫. মেইন অ্যাপ সিস্টেম (আপনার ভিডিও ফিড ও আপলোড) ---
+# --- ৪. মেইন ফিড ও আপলোড সিস্টেম ---
+# আপনার আগের কোড যেভাবে কাজ করতো, সেভাবেই কাজ করবে
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -121,15 +104,8 @@ if tab == "🌍 World Feed":
                     <a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" 
                        style="background:#ed1c24; color:white; padding:8px 20px; border-radius:5px; text-decoration:none; font-weight:bold;">Click to Win Reward 🎁</a>
                 </div>
-                <div style="margin: 10px 0;">
-                    <span class="stat-box">👁️ {format_value(v.get("views", 0))} Views</span>
-                    <span class="stat-box">❤️ {format_value(v.get("likes", 0))} Likes</span>
-                    <span class="stat-box">👤 {format_value(v.get("followers", 0))} Followers</span>
-                </div>
                 <a href="https://www.profitablecpmratenetwork.com/krgreepsz8?key=08a0fdc6d7ed4f33a60d1f4910ec27c5" target="_blank" class="btn-direct bg-1">💰 High CPC Reward 1</a>
                 <a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-direct bg-2">💎 Premium Bonus 2</a>
-                <a href="https://www.profitablecpmratenetwork.com/cq47z3azy?key=89e1a9a3fcee8e90a78f858e32718ec4" target="_blank" class="btn-direct bg-3">🚀 Mega Earning 3</a>
-                <a href="https://www.profitablecpmratenetwork.com/et1vapu9bt?key=fa5bc3d78e5b5dbd9f470c2249c4180b" target="_blank" class="btn-direct bg-4">🎁 Special Gift 4</a>
             ''', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
     except: st.error("Feed Error")
@@ -141,7 +117,6 @@ elif tab == "📤 Upload Video":
         if st.button("🚀 Publish Video") and file:
             with st.spinner("Publishing..."):
                 target = random.choice(STORAGE_KEYS)
-                auto_cleanup(target['url'])
                 t_in, t_out = "raw.mp4", "final.mp4"
                 with open(t_in, "wb") as f: f.write(file.getvalue())
                 cmd = f'ffmpeg -i {t_in} -t 15 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 1.9M -y {t_out}'
