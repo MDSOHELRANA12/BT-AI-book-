@@ -7,7 +7,7 @@ import subprocess
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# ১. সুপাবেস কানেকশন ও জংশন বক্স (১০টি স্টোরেজ কি সহ)
+# ১. সুপাবেস কানেকশন ও জংশন বক্স
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
@@ -27,7 +27,7 @@ STORAGE_KEYS = [
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ২. ফরম্যাট ও অটো ক্লিনআপ লজিক (১০০ ভিডিও লিমিট)
+# ২. ফরম্যাট ও অটো ক্লিনআপ
 def format_value(value):
     if value >= 1000000: return f"{value/1000000:.1f}M"
     elif value >= 1000: return f"{value/1000:.1f}K"
@@ -45,7 +45,7 @@ def auto_cleanup():
                 except: pass
         supabase.table("videos").delete().eq("id", old['id']).execute()
 
-# ৩. ডিজাইন ও স্টাইল (আপনার অরিজিনাল সব বাটন এখানে আছে)
+# ৩. ডিজাইন ও স্টাইল
 st.markdown("""
     <style>
     .stApp { background-color: #000; color: #fff; }
@@ -59,22 +59,23 @@ st.markdown("""
     }
     .username-text { font-weight: bold; font-size: 18px; color: #fff; }
     .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 15px; }
-    .btn-reward { 
-        display: block; width: 100%; padding: 12px; margin: 10px 0; 
-        background: linear-gradient(135deg, #ed1c24, #aa0000); 
+    
+    /* ডাইরেক্ট লিঙ্ক বাটনের স্টাইল */
+    .btn-direct { 
+        display: block; width: 100%; padding: 10px; margin: 5px 0; 
         color: white !important; text-align: center; border-radius: 8px; 
-        font-weight: bold; text-decoration: none;
+        font-weight: bold; text-decoration: none; font-size: 14px;
     }
-    .big-ad-box {
-        background: #1a1a1a; border: 2px dashed #ed1c24; border-radius: 15px;
-        padding: 25px; text-align: center; margin-bottom: 30px;
-    }
+    .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
+    .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
+    .bg-3 { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .bg-4 { background: linear-gradient(135deg, #f6d365, #fda085); }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🛡️ BT AI book")
 
-# ৪. লগইন সিস্টেম (আপনার অরিজিনাল লজিক)
+# ৪. লগইন সিস্টেম
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -109,9 +110,8 @@ else:
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৫. মেইন ফিড (আপনার ডিজাইন + প্রতিটি ভিডিওর নিচে অ্যাড)
+# ৫. মেইন ফিড (প্রতিটি ভিডিওর নিচে ৪টি ডাইরেক্ট লিঙ্ক বাটন)
 if tab == "🌍 World Feed":
-    # জাভাস্ক্রিপ্ট অ্যাড স্ক্রিপ্ট
     ad_script = """
     <div style="text-align:center; margin: 10px 0;">
         <script type="text/javascript" src="https://pl29289908.profitablecpmratenetwork.com/75/f2/b3/75f2b3ea1ac23fb6fb2830593292cea8.js"></script>
@@ -125,18 +125,14 @@ if tab == "🌍 World Feed":
 
         for index, v in enumerate(data):
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
-            # প্রোফাইল ছবি ও নাম
             st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:15px;"><img src="{v.get("uploader_pic", "")}" class="user-avatar"><span class="username-text">{v.get("uploader_name", "BT User")}</span></div>', unsafe_allow_html=True)
-            
-            # ভিডিও প্লেয়ার
             st.video(v['video_url'])
             
-            # ভিউ কাউন্ট আপডেট
             v_id = v['id']
+            # ভিউ আপডেট
             try: supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
             except: pass
 
-            # আপনার অরিজিনাল স্ট্যাটাস বার
             st.markdown(f'''
                 <div style="margin: 12px 0;">
                     <span class="stat-box">👁️ {format_value(v.get("views", 0)+1)} Views</span>
@@ -145,10 +141,15 @@ if tab == "🌍 World Feed":
                 </div>
             ''', unsafe_allow_html=True)
 
-            # আপনার অরিজিনাল রিওয়ার্ড বাটন
-            st.markdown(f'<a href="https://www.profitablecpmratenetwork.com/your-link" class="btn-reward">🎁 Collect Reward / Watch Ad</a>', unsafe_allow_html=True)
+            # --- ৪টি ডাইরেক্ট লিঙ্ক বাটন ---
+            st.markdown(f'''
+                <a href="https://www.profitablecpmratenetwork.com/krgreepsz8?key=08a0fdc6d7ed4f33a60d1f4910ec27c5" target="_blank" class="btn-direct bg-1">💰 High CPC Reward 1</a>
+                <a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-direct bg-2">💎 Premium Bonus 2</a>
+                <a href="https://www.profitablecpmratenetwork.com/cq47z3azy?key=89e1a9a3fcee8e90a78f858e32718ec4" target="_blank" class="btn-direct bg-3">🚀 Mega Earning 3</a>
+                <a href="https://www.profitablecpmratenetwork.com/et1vapu9bt?key=fa5bc3d78e5b5dbd9f470c2249c4180b" target="_blank" class="btn-direct bg-4">🎁 Special Gift 4</a>
+            ''', unsafe_allow_html=True)
             
-            # লাইক ও ফলো বাটন লজিক (১০০% ফিক্সড)
+            # লাইক ও ফলো বাটন
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"❤️ Like", key=f"lk_{v_id}_{index}"):
@@ -159,19 +160,8 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
 
-            # প্রতিটি ভিডিওর নিচে অটো জাভাস্ক্রিপ্ট অ্যাড
             components.html(ad_script, height=180)
             st.markdown('</div>', unsafe_allow_html=True)
-
-            # ৫টি ভিডিও পর পর আপনার সেই "Big Ad Box"
-            if (index + 1) % 5 == 0:
-                st.markdown('''
-                    <div class="big-ad-box">
-                        <h3 style="color:#ed1c24;">🔥 Special Mega Reward 🔥</h3>
-                        <p>Click below to unlock premium points!</p>
-                        <a href="https://your-ad-link.com" class="btn-reward" style="width:250px; margin: 0 auto;">Claim Mega Prize</a>
-                    </div>
-                ''', unsafe_allow_html=True)
 
     except Exception as e:
         st.error("Feed Error")
@@ -179,27 +169,25 @@ if tab == "🌍 World Feed":
 # ৬. ভিডিও আপলোড (১৫ সেকেন্ড, ৩ লিমিট এবং ২ এমবি কনভার্ট)
 elif tab == "📤 Upload Video":
     if not st.session_state.user:
-        st.warning("Please login first to upload!")
+        st.warning("Please login first!")
     else:
-        file = st.file_uploader("Select Video (Max 15s, Auto 2MB)", type=['mp4'])
+        file = st.file_uploader("Upload Video (Max 15s, Auto 2MB)", type=['mp4'])
         if st.button("🚀 Publish Video") and file:
-            # দৈনিক ৩ ভিডিও লিমিট চেক
             today = datetime.now().strftime("%Y-%m-%d")
             check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
             
             if len(check.data) >= 3:
-                st.error("Today's limit (3 videos) reached! Come back tomorrow.")
+                st.error("Today's limit reached!")
             else:
-                with st.spinner("Converting & Compressing to 2MB..."):
-                    auto_cleanup() # ১০০ ভিডিওর লিমিট চেক
+                with st.spinner("Converting to 2MB..."):
+                    auto_cleanup()
                     t_in, t_out = "raw_in.mp4", "final_out.mp4"
                     with open(t_in, "wb") as f: f.write(file.getvalue())
                     
-                    # FFMPEG: ১৫ সেকেন্ড + ২ এমবি + ব্রাউজার সাপোর্ট ফিক্স
+                    # FFMPEG কনভার্ট
                     cmd = f'ffmpeg -i {t_in} -t 15 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -pix_fmt yuv420p -crf 28 -b:v 1M -fs 1.9M -movflags +faststart -y {t_out}'
                     subprocess.run(cmd, shell=True)
                     
-                    # র্যান্ডম স্টোরেজ সিলেক্ট করা
                     target = random.choice(STORAGE_KEYS)
                     s_bot = create_client(target['url'], target['key'])
                     v_uuid = f"v_{uuid.uuid4()}.mp4"
@@ -209,16 +197,11 @@ elif tab == "📤 Upload Video":
                     
                     v_url = s_bot.storage.from_("videos").get_public_url(v_uuid)
                     
-                    # ডাটাবেজে ডাটা সেভ করা
                     supabase.table("videos").insert({
-                        "video_url": v_url,
-                        "uploader_name": st.session_state.user,
-                        "uploader_pic": st.session_state.pic,
-                        "likes": 0,
-                        "views": 0,
-                        "followers": 0
+                        "video_url": v_url, "uploader_name": st.session_state.user,
+                        "uploader_pic": st.session_state.pic, "likes": 0, "views": 0, "followers": 0
                     }).execute()
                     
-                    st.success("Video Published Successfully!")
+                    st.success("Published!")
                     os.remove(t_in); os.remove(t_out)
                     st.rerun()
