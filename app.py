@@ -7,21 +7,34 @@ import subprocess
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# ১. মাইক্রোসফট বিং ভেরিফিকেশন (আপনার দেওয়া কোডটি এখানে বসানো হয়েছে)
-# এটি আপনার ভিডিও বা অন্য কোনো ফিচারে কোনো সমস্যা করবে না
+# =========================================================
+# ১. ভেরিফিকেশন এবং অ্যাড সেটিংস (আপনার ১০ কোটির প্রোজেক্টের সুরক্ষা বজায় রেখে)
+# =========================================================
+
+# Monetag এবং Bing ভেরিফিকেশন একসাথে Head সেকশনে যুক্ত করা হলো
 st.markdown(
     f"""
-    <script>
-        var meta = document.createElement('meta');
-        meta.name = "msvalidate.01";
-        meta.content = "e776b8ce73ea3dcc07551e8a021a0907";
-        document.getElementsByTagName('head')[0].appendChild(meta);
-    </script>
+    <head>
+        <meta name="monetag" content="5cc1b7ba5cb29eff802ce49009f87e2b">
+        <meta name="msvalidate.01" content="e776b8ce73ea3dcc07551e8a021a0907">
+    </head>
     """,
     unsafe_allow_html=True
 )
 
-# ২. সুপাবেস কানেকশন ও জংশন বক্স (আপনার অরিজিনাল ডাটা)
+# অটো ব্যানার অ্যাড এর জন্য স্ক্রিপ্ট (যা সবসময় স্ক্রিনে অ্যাড শো করাবে)
+# নোট: ভেরিফিকেশন শেষ হলে Monetag থেকে পাওয়া ব্যানার কোডটি এখানে বসাতে পারবেন
+def show_auto_banner():
+    ad_tag = """
+    <div style="text-align:center; margin: 10px 0;">
+        <p style="color:#555; font-size:10px;">Advertisement</p>
+    </div>
+    """
+    components.html(ad_tag, height=100)
+
+# =========================================================
+# ২. সুপাবেস কানেকশন ও জংশন বক্স (অরিজিনাল ডাটা)
+# =========================================================
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
@@ -116,6 +129,10 @@ if tab == "🌍 World Feed":
         res = supabase.table("videos").select("*").execute()
         data = res.data if res.data else []
         random.shuffle(data)
+        
+        # ফিডের একদম উপরে একটি অটো ব্যানার
+        show_auto_banner()
+
         for index, v in enumerate(data):
             v_id = v['id']
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
@@ -123,11 +140,19 @@ if tab == "🌍 World Feed":
             st.video(v['video_url'])
             try: supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
             except: pass
+            
+            # প্রতিটি ভিডিওর নিচে রিওয়ার্ড বাটন এবং অ্যাড
             st.markdown(f'''
                 <div class="banner-box">
                     <a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" 
                        style="background:#ed1c24; color:white; padding:8px 20px; border-radius:5px; text-decoration:none; font-weight:bold;">Click to Win Reward 🎁</a>
                 </div>
+            ''', unsafe_allow_html=True)
+            
+            # এখানে অটো ব্যানার শো করবে
+            show_auto_banner()
+
+            st.markdown(f'''
                 <div style="margin: 10px 0;">
                     <span class="stat-box">👁️ {format_value(v.get("views", 0))} Views</span>
                     <span class="stat-box">❤️ {format_value(v.get("likes", 0))} Likes</span>
@@ -138,6 +163,7 @@ if tab == "🌍 World Feed":
                 <a href="https://www.profitablecpmratenetwork.com/cq47z3azy?key=89e1a9a3fcee8e90a78f858e32718ec4" target="_blank" class="btn-direct bg-3">🚀 Mega Earning 3</a>
                 <a href="https://www.profitablecpmratenetwork.com/et1vapu9bt?key=fa5bc3d78e5b5dbd9f470c2249c4180b" target="_blank" class="btn-direct bg-4">🎁 Special Gift 4</a>
             ''', unsafe_allow_html=True)
+            
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"❤️ Like", key=f"lk_{v_id}"):
@@ -150,7 +176,7 @@ if tab == "🌍 World Feed":
             st.markdown('</div>', unsafe_allow_html=True)
     except: st.error("Feed Error")
 
-# ৭. ভিডিও আপলোড
+# ৭. ভিডিও আপলোড (অপরিবর্তিত)
 elif tab == "📤 Upload Video":
     if not st.session_state.user: st.warning("Login first!")
     else:
