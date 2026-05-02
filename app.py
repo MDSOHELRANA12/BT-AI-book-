@@ -7,14 +7,21 @@ import subprocess
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# ১. গুগল ফাইল ভেরিফিকেশন হ্যান্ডলার (নতুন ফাইল কোড অনুযায়ী)
-# গুগল যখন লিংকের শেষে ফাইলটির নাম দেখবে, তখন এই অংশটি কাজ করবে
-query_params = st.query_params
-if "google7ed30cce8d663bc4.html" in query_params or "google_verify" in query_params:
-    st.write("google-site-verification: google7ed30cce8d663bc4.html")
-    st.stop()
+# ১. মাইক্রোসফট বিং ভেরিফিকেশন (আপনার দেওয়া কোডটি এখানে বসানো হয়েছে)
+# এটি আপনার ভিডিও বা অন্য কোনো ফিচারে কোনো সমস্যা করবে না
+st.markdown(
+    f"""
+    <script>
+        var meta = document.createElement('meta');
+        meta.name = "msvalidate.01";
+        meta.content = "e776b8ce73ea3dcc07551e8a021a0907";
+        document.getElementsByTagName('head')[0].appendChild(meta);
+    </script>
+    """,
+    unsafe_allow_html=True
+)
 
-# ২. সুপাবেস কানেকশন ও জংশন বক্স
+# ২. সুপাবেস কানেকশন ও জংশন বক্স (আপনার অরিজিনাল ডাটা)
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
@@ -33,19 +40,6 @@ STORAGE_KEYS = [
 ]
 
 st.set_page_config(page_title="BT AI book", layout="wide")
-
-# মেটা ট্যাগ ব্যাকআপ হিসেবে থাকল (গুগল স্ক্রিপ্ট সহ)
-st.markdown(
-    f"""
-    <script>
-        var meta = document.createElement('meta');
-        meta.name = "google-site-verification";
-        meta.content = "g3O60nQs2GvZwmbI9SnedDrlRYi_Upwtzs3";
-        document.getElementsByTagName('head')[0].appendChild(meta);
-    </script>
-    """,
-    unsafe_allow_html=True
-)
 
 # ৩. ফরম্যাট ও অটো ক্লিনআপ
 def format_value(value):
@@ -78,11 +72,11 @@ st.markdown("""
     .bg-4 { background: linear-gradient(135deg, #f6d365, #fda085); }
     .banner-box { background: #1a1a1a; border: 1px dashed #ed1c24; padding: 15px; text-align: center; border-radius: 10px; margin: 15px 0; }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 st.title("🛡️ BT AI book")
 
-# ৫. লগইন সিস্টেম (আগের মতোই)
+# ৫. লগইন সিস্টেম
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -116,7 +110,7 @@ else:
 
 tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৬. মেইন ফিড
+# ৬. মেইন ফিড (ভিডিও দেখার অংশ)
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").execute()
