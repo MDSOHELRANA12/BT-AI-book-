@@ -7,18 +7,12 @@ import subprocess
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# ১. গুগল ভেরিফিকেশন (মেটা ট্যাগ ইনজেকশন)
-st.markdown(
-    f"""
-    <script>
-        var meta = document.createElement('meta');
-        meta.name = "google-site-verification";
-        meta.content = "g3O60nQs2GvZwmbI9SnedDrlRYi_Upwtzs3";
-        document.getElementsByTagName('head')[0].appendChild(meta);
-    </script>
-    """,
-    unsafe_allow_html=True
-)
+# ১. গুগল ফাইল ভেরিফিকেশন হ্যান্ডলার (নতুন ফাইল কোড অনুযায়ী)
+# গুগল যখন লিংকের শেষে ফাইলটির নাম দেখবে, তখন এই অংশটি কাজ করবে
+query_params = st.query_params
+if "google7ed30cce8d663bc4.html" in query_params or "google_verify" in query_params:
+    st.write("google-site-verification: google7ed30cce8d663bc4.html")
+    st.stop()
 
 # ২. সুপাবেস কানেকশন ও জংশন বক্স
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
@@ -40,7 +34,20 @@ STORAGE_KEYS = [
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ৩. ফরম্যাট ও অটো ক্লিনআপ (প্রতি চাবিতে ৫০০ লিমিট)
+# মেটা ট্যাগ ব্যাকআপ হিসেবে থাকল (গুগল স্ক্রিপ্ট সহ)
+st.markdown(
+    f"""
+    <script>
+        var meta = document.createElement('meta');
+        meta.name = "google-site-verification";
+        meta.content = "g3O60nQs2GvZwmbI9SnedDrlRYi_Upwtzs3";
+        document.getElementsByTagName('head')[0].appendChild(meta);
+    </script>
+    """,
+    unsafe_allow_html=True
+)
+
+# ৩. ফরম্যাট ও অটো ক্লিনআপ
 def format_value(value):
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
@@ -71,11 +78,11 @@ st.markdown("""
     .bg-4 { background: linear-gradient(135deg, #f6d365, #fda085); }
     .banner-box { background: #1a1a1a; border: 1px dashed #ed1c24; padding: 15px; text-align: center; border-radius: 10px; margin: 15px 0; }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 st.title("🛡️ BT AI book")
 
-# ৫. লগইন সিস্টেম
+# ৫. লগইন সিস্টেম (আগের মতোই)
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
