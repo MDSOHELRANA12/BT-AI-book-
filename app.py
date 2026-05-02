@@ -35,6 +35,31 @@ if 'user' not in st.session_state: st.session_state.user = None
 
 tab = st.sidebar.radio("BT Menu", ["🌍 World Feed", "📤 Upload Video", "🔐 Profile"])
 
+# --- ১. অটো ডিলিট ফাংশন (পুরানো ভিডিও মোছার জন্য) ---
+def auto_cleanup():
+    # মোট ভিডিও সংখ্যা চেক করা
+    res = supabase.table("videos").select("id", "video_url").order("created_at", desc=False).execute()
+    total_videos = len(res.data)
+    
+    # যদি ভিডিও ১০০টির বেশি হয়, তবে সবচেয়ে পুরনোটি ডিলিট হবে
+    if total_videos > 100:
+        oldest_video = res.data[0]
+        v_id = oldest_video['id']
+        v_url = oldest_video['video_url']
+        
+        # স্টোরেজ থেকে ভিডিও ডিলিট করা (১০টি চাবির মধ্যে খুঁজে বের করে)
+        v_name = v_url.split('/')[-1]
+        for storage in STORAGE_KEYS:
+            if storage['url'] in v_url:
+                try:
+                    s_client = create_client(storage['url'], storage['key'])
+                    s_client.storage.from_("videos").remove([v_name])
+                    break
+                except: pass
+        
+        # ডাটাবেজ থেকে ডিলিট করা
+        supabase.table("videos").delete().eq("id", v_id).execute()
+
 # --- প্রোফাইল লগইন ও রেজিস্ট্রেশন ---
 if tab == "🔐 Profile":
     if not st.session_state.user:
@@ -89,7 +114,6 @@ elif tab == "📤 Upload Video":
     else:
         file = st.file_uploader("ভিডিও নির্বাচন করুন (১৫ সেকেন্ড ও ২ এমবি হবে অটো)", type=['mp4'])
         if st.button("🚀 Publish") and file:
-            # ডেলি লিমিট চেক
             today = datetime.now().strftime("%Y-%m-%d")
             check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
             
@@ -97,11 +121,12 @@ elif tab == "📤 Upload Video":
                 st.error("আজকের ৩টি ভিডিওর লিমিট শেষ হয়ে গেছে!")
             else:
                 with st.spinner("ভিডিও প্রসেস ও ২ এমবি-তে রূপান্তর হচ্ছে..."):
+                    # অটো-ক্লিনআপ রান করা (আপলোডের আগে জায়গা খালি করবে)
+                    auto_cleanup()
+                    
                     t_in, t_out = "temp_in.mp4", "temp_out.mp4"
                     with open(t_in, "wb") as f: f.write(file.getvalue())
                     
-                    # ১৫ সেকেন্ডের ভিডিও করা এবং ২ এমবি-তে কনভার্ট করা
-                    # -t 15 মানে ১৫ সেকেন্ড, -fs 2M মানে ২ মেগাবাইট লিমিট
                     subprocess.run(f"ffmpeg -i {t_in} -t 15 -vcodec libx264 -crf 28 -fs 2M -y {t_out}", shell=True)
                     
                     target = random.choice(STORAGE_KEYS)
