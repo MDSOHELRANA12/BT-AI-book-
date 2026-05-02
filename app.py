@@ -7,34 +7,38 @@ import subprocess
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# =========================================================
-# ১. ভেরিফিকেশন এবং অ্যাড সেটিংস (আপনার ১০ কোটির প্রোজেক্টের সুরক্ষা বজায় রেখে)
-# =========================================================
-
-# Monetag এবং Bing ভেরিফিকেশন একসাথে Head সেকশনে যুক্ত করা হলো
+# ১. মাইক্রোসফট বিং ও মনেট্যাগ ভেরিফিকেশন (একসাথেই হেড সেকশনে রাখা হয়েছে)
 st.markdown(
     f"""
     <head>
-        <meta name="monetag" content="5cc1b7ba5cb29eff802ce49009f87e2b">
         <meta name="msvalidate.01" content="e776b8ce73ea3dcc07551e8a021a0907">
+        <meta name="monetag" content="5cc1b7ba5cb29eff802ce49009f87e2b">
     </head>
     """,
     unsafe_allow_html=True
 )
 
-# অটো ব্যানার অ্যাড এর জন্য স্ক্রিপ্ট (যা সবসময় স্ক্রিনে অ্যাড শো করাবে)
-# নোট: ভেরিফিকেশন শেষ হলে Monetag থেকে পাওয়া ব্যানার কোডটি এখানে বসাতে পারবেন
-def show_auto_banner():
-    ad_tag = """
+# আপনার স্মার্ট লিঙ্কটি এখানে সেট করা হলো
+SMART_LINK = "https://omg10.com/4/10954816"
+
+# অটো ব্যানার ফাংশন (এটি ভিডিওর নিচে অটোমেটিক শো করবে)
+def show_auto_moving_banner():
+    ad_html = f"""
     <div style="text-align:center; margin: 10px 0;">
-        <p style="color:#555; font-size:10px;">Advertisement</p>
+        <a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">
+            <div style="background: linear-gradient(90deg, #00ff00, #000); 
+                        color: #fff; padding: 15px; border-radius: 10px; 
+                        border: 2px solid #00ff00; font-family: sans-serif;
+                        box-shadow: 0 0 20px #00ff00; transition: 0.3s;">
+                <span style="font-size: 18px; font-weight: bold;">⚡ PREMIUM REWARD ACTIVE ⚡</span><br>
+                <span style="font-size: 12px; color: #00ff00;">Click to Claim Your Diamond Bonus!</span>
+            </div>
+        </a>
     </div>
     """
-    components.html(ad_tag, height=100)
+    components.html(ad_html, height=120)
 
-# =========================================================
 # ২. সুপাবেস কানেকশন ও জংশন বক্স (অরিজিনাল ডাটা)
-# =========================================================
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
@@ -129,10 +133,6 @@ if tab == "🌍 World Feed":
         res = supabase.table("videos").select("*").execute()
         data = res.data if res.data else []
         random.shuffle(data)
-        
-        # ফিডের একদম উপরে একটি অটো ব্যানার
-        show_auto_banner()
-
         for index, v in enumerate(data):
             v_id = v['id']
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
@@ -140,30 +140,25 @@ if tab == "🌍 World Feed":
             st.video(v['video_url'])
             try: supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
             except: pass
-            
-            # প্রতিটি ভিডিওর নিচে রিওয়ার্ড বাটন এবং অ্যাড
-            st.markdown(f'''
-                <div class="banner-box">
-                    <a href="https://www.profitablecpmratenetwork.com/a68pzvy9g?key=ff79dfacf59be49e36f413f0f2e76766" target="_blank" 
-                       style="background:#ed1c24; color:white; padding:8px 20px; border-radius:5px; text-decoration:none; font-weight:bold;">Click to Win Reward 🎁</a>
-                </div>
-            ''', unsafe_allow_html=True)
-            
-            # এখানে অটো ব্যানার শো করবে
-            show_auto_banner()
+
+            # অটো ব্যানার এখানে সেট করা হলো (প্রতিটি ভিডিওর ঠিক নিচে)
+            show_auto_moving_banner()
 
             st.markdown(f'''
+                <div class="banner-box">
+                    <a href="{SMART_LINK}" target="_blank" 
+                       style="background:#ed1c24; color:white; padding:8px 20px; border-radius:5px; text-decoration:none; font-weight:bold;">Click to Win Reward 🎁</a>
+                </div>
                 <div style="margin: 10px 0;">
                     <span class="stat-box">👁️ {format_value(v.get("views", 0))} Views</span>
                     <span class="stat-box">❤️ {format_value(v.get("likes", 0))} Likes</span>
                     <span class="stat-box">👤 {format_value(v.get("followers", 0))} Followers</span>
                 </div>
-                <a href="https://www.profitablecpmratenetwork.com/krgreepsz8?key=08a0fdc6d7ed4f33a60d1f4910ec27c5" target="_blank" class="btn-direct bg-1">💰 High CPC Reward 1</a>
-                <a href="https://www.profitablecpmratenetwork.com/tgt6azn6?key=e753cbd6d9bae06d67051ed846419521" target="_blank" class="btn-direct bg-2">💎 Premium Bonus 2</a>
-                <a href="https://www.profitablecpmratenetwork.com/cq47z3azy?key=89e1a9a3fcee8e90a78f858e32718ec4" target="_blank" class="btn-direct bg-3">🚀 Mega Earning 3</a>
-                <a href="https://www.profitablecpmratenetwork.com/et1vapu9bt?key=fa5bc3d78e5b5dbd9f470c2249c4180b" target="_blank" class="btn-direct bg-4">🎁 Special Gift 4</a>
+                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-1">💰 High CPC Reward 1</a>
+                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-2">💎 Premium Bonus 2</a>
+                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-3">🚀 Mega Earning 3</a>
+                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-4">🎁 Special Gift 4</a>
             ''', unsafe_allow_html=True)
-            
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"❤️ Like", key=f"lk_{v_id}"):
@@ -176,7 +171,7 @@ if tab == "🌍 World Feed":
             st.markdown('</div>', unsafe_allow_html=True)
     except: st.error("Feed Error")
 
-# ৭. ভিডিও আপলোড (অপরিবর্তিত)
+# ৭. ভিডিও আপলোড
 elif tab == "📤 Upload Video":
     if not st.session_state.user: st.warning("Login first!")
     else:
