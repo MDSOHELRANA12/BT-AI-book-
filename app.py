@@ -24,7 +24,7 @@ st.markdown(
 # স্মার্ট লিঙ্ক
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# --- ২. ডাটাবেস ও স্টোরেজ কানেকশন (সুপাবেস) ---
+# --- ২. ডাটাবেস ও স্টোরেজ কানেকশন ---
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
@@ -45,12 +45,10 @@ STORAGE_KEYS = [
 # --- ৩. ইউটিলিটি ফাংশনসমূহ ---
 
 def format_value(value):
-    """ভিউ বা লাইক সংখ্যা ফরম্যাট করার জন্য"""
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
 def auto_cleanup(target_storage_url):
-    """স্টোরেজ ক্লিনআপ করার জন্য"""
     res = supabase.table("videos").select("id", "video_url").like("video_url", f"%{target_storage_url}%").order("created_at", desc=False).execute()
     if len(res.data) >= 500:
         old = res.data[0]
@@ -63,41 +61,52 @@ def auto_cleanup(target_storage_url):
         supabase.table("videos").delete().eq("id", old['id']).execute()
 
 def show_auto_moving_banner():
-    """ভিডিওর নিচে অটোমেটিক ব্যানার শো করার জন্য"""
     ad_html = f"""
     <div style="text-align:center; margin: 10px 0;">
         <a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">
-            <div style="background: linear-gradient(90deg, #00ff00, #000); 
+            <div style="background: linear-gradient(90deg, #00c853, #000); 
                         color: #fff; padding: 15px; border-radius: 10px; 
-                        border: 2px solid #00ff00; font-family: sans-serif;
-                        box-shadow: 0 0 20px #00ff00; transition: 0.3s;">
+                        border: 2px solid #00c853; font-family: sans-serif;
+                        box-shadow: 0 4px 15px rgba(0,200,83,0.4); transition: 0.3s;">
                 <span style="font-size: 18px; font-weight: bold;">⚡ PREMIUM REWARD ACTIVE ⚡</span><br>
-                <span style="font-size: 12px; color: #00ff00;">Click to Claim Your Diamond Bonus!</span>
+                <span style="font-size: 12px; color: #fff;">Click to Claim Your Diamond Bonus!</span>
             </div>
         </a>
     </div>
     """
     components.html(ad_html, height=120)
 
-# --- ৪. সিএসএস স্টাইল ---
+# --- ৪. সিএসএস স্টাইল (ব্যাকগ্রাউন্ড সাদা করা হয়েছে) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #000; color: #fff; }
-    .video-card { background: #0d0d0d; border: 1px solid #333; border-radius: 15px; padding: 15px; margin-bottom: 25px; }
-    .user-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #00ff00; object-fit: cover; margin-right: 12px; }
-    .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 15px; }
-    .btn-direct { display: block; width: 100%; padding: 10px; margin: 5px 0; color: white !important; text-align: center; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 14px; }
+    /* মেইন ব্যাকগ্রাউন্ড সাদা */
+    .stApp { background-color: #ffffff; color: #000000; }
+    
+    /* ভিডিও কার্ডের ডিজাইন হালকা গ্রে যাতে সাদা ব্যাকগ্রাউন্ডে ফুটে ওঠে */
+    .video-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 15px; padding: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    
+    .user-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #00c853; object-fit: cover; margin-right: 12px; }
+    
+    /* স্ট্যাট টেক্সট কালার */
+    .stat-box { font-size: 14px; color: #333; font-weight: bold; margin-right: 15px; }
+    
+    .btn-direct { display: block; width: 100%; padding: 12px; margin: 8px 0; color: white !important; text-align: center; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 15px; transition: 0.3s; }
+    
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
     .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
     .bg-3 { background: linear-gradient(135deg, #667eea, #764ba2); }
     .bg-4 { background: linear-gradient(135deg, #f6d365, #fda085); }
-    .banner-box { background: #1a1a1a; border: 1px dashed #ed1c24; padding: 15px; text-align: center; border-radius: 10px; margin: 15px 0; }
+    
+    .banner-box { background: #fff5f5; border: 1px dashed #ed1c24; padding: 15px; text-align: center; border-radius: 10px; margin: 15px 0; }
+    
+    /* সাইডবার কালার অ্যাডজাস্টমেন্ট */
+    section[data-testid="stSidebar"] { background-color: #f1f1f1 !important; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🛡️ BT AI book")
 
-# --- ৫. লগইন ও সেশন ম্যানেজমেন্ট ---
+# --- ৫. লগইন সিস্টেম ---
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -124,14 +133,14 @@ if not st.session_state.user:
                     st.rerun()
 else:
     st.sidebar.image(st.session_state.pic, width=80)
-    st.sidebar.write(f"Hello, {st.session_state.user}")
+    st.sidebar.write(f"Hello, **{st.session_state.user}**")
     if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.rerun()
 
 tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
 
-# --- ৬. মেইন ফিড (ভিডিও ডিসপ্লে) ---
+# --- ৬. মেইন ফিড ---
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").execute()
@@ -141,7 +150,7 @@ if tab == "🌍 World Feed":
         for index, v in enumerate(data):
             v_id = v['id']
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
-            st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:12px;"><img src="{v.get("uploader_pic", "")}" class="user-avatar"><b>{v.get("uploader_name")}</b></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:12px; color:#000;"><img src="{v.get("uploader_pic", "")}" class="user-avatar"><b>{v.get("uploader_name")}</b></div>', unsafe_allow_html=True)
             
             st.video(v['video_url'])
             
@@ -150,15 +159,14 @@ if tab == "🌍 World Feed":
             except: 
                 pass
 
-            # অটো ব্যানার
             show_auto_moving_banner()
 
             st.markdown(f'''
                 <div class="banner-box">
                     <a href="{SMART_LINK}" target="_blank" 
-                       style="background:#ed1c24; color:white; padding:8px 20px; border-radius:5px; text-decoration:none; font-weight:bold;">Click to Win Reward 🎁</a>
+                       style="background:#ed1c24; color:white; padding:10px 25px; border-radius:5px; text-decoration:none; font-weight:bold; display:inline-block;">Click to Win Reward 🎁</a>
                 </div>
-                <div style="margin: 10px 0;">
+                <div style="margin: 10px 0; display: flex; justify-content: start;">
                     <span class="stat-box">👁️ {format_value(v.get("views", 0))} Views</span>
                     <span class="stat-box">❤️ {format_value(v.get("likes", 0))} Likes</span>
                     <span class="stat-box">👤 {format_value(v.get("followers", 0))} Followers</span>
@@ -182,11 +190,12 @@ if tab == "🌍 World Feed":
     except: 
         st.error("Feed Error")
 
-# --- ৭. ভিডিও আপলোড সেকশন ---
+# --- ৭. ভিডিও আপলোড ---
 elif tab == "📤 Upload Video":
     if not st.session_state.user: 
         st.warning("Login first!")
     else:
+        st.markdown("<h3 style='color:#000;'>Upload Your Video</h3>", unsafe_allow_html=True)
         file = st.file_uploader("Select Video", type=['mp4'])
         if st.button("🚀 Publish Video") and file:
             today = datetime.now().strftime("%Y-%m-%d")
@@ -203,7 +212,6 @@ elif tab == "📤 Upload Video":
                     with open(t_in, "wb") as f: 
                         f.write(file.getvalue())
                     
-                    # FFmpeg কম্প্রেসিং (১৫ সেকেন্ড লিমিট)
                     cmd = f'ffmpeg -i {t_in} -t 15 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 1.9M -y {t_out}'
                     subprocess.run(cmd, shell=True)
                     
