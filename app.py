@@ -7,10 +7,7 @@ import subprocess
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# --- ১. কনফিগারেশন ও মেটা ট্যাগ ---
-st.set_page_config(page_title="BT AI book", layout="wide")
-
-# মাইক্রোসফট বিং ও মনেট্যাগ ভেরিফিকেশন
+# ১. মাইক্রোসফট বিং ও মনেট্যাগ ভেরিফিকেশন
 st.markdown(
     f"""
     <head>
@@ -21,10 +18,27 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# স্মার্ট লিঙ্ক
+# আপনার স্মার্ট লিঙ্কটি এখানে সেট করা হলো
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# --- ২. ডাটাবেস ও স্টোরেজ কানেকশন ---
+# অটো ব্যানার ফাংশন
+def show_auto_moving_banner():
+    ad_html = f"""
+    <div style="text-align:center; margin: 10px 0;">
+        <a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">
+            <div style="background: linear-gradient(90deg, #00c853, #000); 
+                        color: #fff; padding: 15px; border-radius: 10px; 
+                        border: 2px solid #00c853; font-family: sans-serif;
+                        box-shadow: 0 4px 15px rgba(0,200,83,0.4); transition: 0.3s;">
+                <span style="font-size: 18px; font-weight: bold;">⚡ PREMIUM REWARD ACTIVE ⚡</span><br>
+                <span style="font-size: 12px; color: #fff;">Click to Claim Your Diamond Bonus!</span>
+            </div>
+        </a>
+    </div>
+    """
+    components.html(ad_html, height=120)
+
+# ২. সুপাবেস কানেকশন ও জংশন বক্স
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
@@ -42,8 +56,9 @@ STORAGE_KEYS = [
     {"url": "https://bczxwfclimiaaljjfegq.supabase.co", "key": "sb_secret_7rFR003t7a_N_VIEbf7aAw_WfPL7xRs"},
 ]
 
-# --- ৩. ইউটিলিটি ফাংশনসমূহ ---
+st.set_page_config(page_title="BT AI book", layout="wide")
 
+# ৩. ফরম্যাট ও অটো ক্লিনআপ
 def format_value(value):
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
@@ -60,42 +75,27 @@ def auto_cleanup(target_storage_url):
                 except: pass
         supabase.table("videos").delete().eq("id", old['id']).execute()
 
-def show_auto_moving_banner():
-    ad_html = f"""
-    <div style="text-align:center; margin: 10px 0;">
-        <a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">
-            <div style="background: linear-gradient(90deg, #00c853, #000); 
-                        color: #fff; padding: 15px; border-radius: 10px; 
-                        border: 2px solid #00c853; font-family: sans-serif;
-                        box-shadow: 0 4px 15px rgba(0,200,83,0.4); transition: 0.3s;">
-                <span style="font-size: 18px; font-weight: bold;">⚡ PREMIUM REWARD ACTIVE ⚡</span><br>
-                <span style="font-size: 12px; color: #fff;">Click to Claim Your Diamond Bonus!</span>
-            </div>
-        </a>
-    </div>
-    """
-    components.html(ad_html, height=120)
-
-# --- ৪. সিএসএস স্টাইল ---
+# ৪. স্টাইল ও ডিজাইন (সাদা ব্যাকগ্রাউন্ড আপডেট করা হয়েছে)
 st.markdown("""
     <style>
     .stApp { background-color: #ffffff; color: #000000; }
     .video-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 15px; padding: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     .user-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #00c853; object-fit: cover; margin-right: 12px; }
-    .stat-box { font-size: 14px; color: #333; font-weight: bold; margin-right: 15px; }
+    .stat-box { font-size: 14px; color: #333333; font-weight: bold; margin-right: 15px; }
     .btn-direct { display: block; width: 100%; padding: 12px; margin: 8px 0; color: white !important; text-align: center; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 15px; transition: 0.3s; }
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
     .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
     .bg-3 { background: linear-gradient(135deg, #667eea, #764ba2); }
     .bg-4 { background: linear-gradient(135deg, #f6d365, #fda085); }
     .banner-box { background: #fff5f5; border: 1px dashed #ed1c24; padding: 15px; text-align: center; border-radius: 10px; margin: 15px 0; }
+    /* সাইডবার কালার অ্যাডজাস্টমেন্ট */
     section[data-testid="stSidebar"] { background-color: #f1f1f1 !important; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🛡️ BT AI book")
 
-# --- ৫. লগইন সিস্টেম ---
+# ৫. লগইন সিস্টেম
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -129,7 +129,7 @@ else:
 
 tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
 
-# --- ৬. মেইন ফিড ---
+# ৬. মেইন ফিড
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").execute()
@@ -142,7 +142,9 @@ if tab == "🌍 World Feed":
             st.video(v['video_url'])
             try: supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
             except: pass
+
             show_auto_moving_banner()
+
             st.markdown(f'''
                 <div class="banner-box">
                     <a href="{SMART_LINK}" target="_blank" 
@@ -170,10 +172,9 @@ if tab == "🌍 World Feed":
             st.markdown('</div>', unsafe_allow_html=True)
     except: st.error("Feed Error")
 
-# --- ৭. ভিডিও আপলোড (৩ এমবি ও ২০ সেকেন্ড আপডেট করা হয়েছে) ---
+# ৭. ভিডিও আপলোড
 elif tab == "📤 Upload Video":
-    if not st.session_state.user: 
-        st.warning("Login first!")
+    if not st.session_state.user: st.warning("Login first!")
     else:
         st.markdown("<h3 style='color:#000;'>Upload Your Video</h3>", unsafe_allow_html=True)
         file = st.file_uploader("Select Video", type=['mp4'])
@@ -188,11 +189,8 @@ elif tab == "📤 Upload Video":
                     auto_cleanup(target['url'])
                     t_in, t_out = "raw.mp4", "final.mp4"
                     with open(t_in, "wb") as f: f.write(file.getvalue())
-                    
-                    # আপডেট: সময় ২০ সেকেন্ড (-t 20) এবং সাইজ ২.৯ এমবি (-fs 2.9M)
-                    cmd = f'ffmpeg -i {t_in} -t 20 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 2.9M -y {t_out}'
+                    cmd = f'ffmpeg -i {t_in} -t 15 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 1.9M -y {t_out}'
                     subprocess.run(cmd, shell=True)
-                    
                     s_bot = create_client(target['url'], target['key'])
                     v_name = f"v_{uuid.uuid4()}.mp4"
                     with open(t_out, "rb") as f: s_bot.storage.from_("videos").upload(v_name, f.read())
