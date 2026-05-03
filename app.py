@@ -10,9 +10,8 @@ import streamlit.components.v1 as components
 # --- ১. কনফিগারেশন ও মেটা ট্যাগ ---
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# মাইক্রোসফট বিং ও মনেট্যাগ ভেরিফিকেশন
 st.markdown(
-    f"""
+    """
     <head>
         <meta name="msvalidate.01" content="e776b8ce73ea3dcc07551e8a021a0907">
         <meta name="monetag" content="5cc1b7ba5cb29eff802ce49009f87e2b">
@@ -21,10 +20,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# স্মার্ট লিঙ্ক
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# --- ২. ডাটাবেস ও স্টোরেজ কানেকশন ---
+# --- ২. ডাটাবেস কানেকশন ---
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
@@ -42,13 +40,13 @@ STORAGE_KEYS = [
     {"url": "https://bczxwfclimiaaljjfegq.supabase.co", "key": "sb_secret_7rFR003t7a_N_VIEbf7aAw_WfPL7xRs"},
 ]
 
-# --- ৩. ইউটিলিটি ফাংশনসমূহ ---
-
+# --- ৩. ইউটিলিটি ফাংশন ---
 def format_value(value):
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
 def auto_cleanup(target_storage_url):
+    # আপনার স্ক্রিনশট অনুযায়ী created_at ফিল্ড ব্যবহার করে ডিলিট করা হবে
     res = supabase.table("videos").select("id", "video_url").like("video_url", f"%{target_storage_url}%").order("created_at", desc=False).execute()
     if len(res.data) >= 500:
         old = res.data[0]
@@ -76,14 +74,14 @@ def show_auto_moving_banner():
     """
     components.html(ad_html, height=120)
 
-# --- ৪. সিএসএস স্টাইল ---
+# --- ৪. সিএসএস স্টাইল (সাদা ব্যাকগ্রাউন্ড) ---
 st.markdown("""
     <style>
     .stApp { background-color: #ffffff; color: #000000; }
     .video-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 15px; padding: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     .user-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #00c853; object-fit: cover; margin-right: 12px; }
     .stat-box { font-size: 14px; color: #333; font-weight: bold; margin-right: 15px; }
-    .btn-direct { display: block; width: 100%; padding: 12px; margin: 8px 0; color: white !important; text-align: center; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 15px; transition: 0.3s; }
+    .btn-direct { display: block; width: 100%; padding: 12px; margin: 8px 0; color: white !important; text-align: center; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 15px; }
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
     .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
     .bg-3 { background: linear-gradient(135deg, #667eea, #764ba2); }
@@ -116,6 +114,7 @@ if not st.session_state.user:
                     fname = f"p_{uuid.uuid4()}.jpg"
                     supabase.storage.from_("videos").upload(path=fname, file=u_pic.getvalue())
                     p_url = supabase.storage.from_("videos").get_public_url(fname)
+                    # আপনার টেবিল স্কিমা অনুযায়ী ডাটা ইনসার্ট
                     supabase.table("users").insert({"username": u_name, "profile_pic": p_url}).execute()
                     st.session_state.user = u_name
                     st.session_state.pic = p_url
@@ -170,7 +169,7 @@ if tab == "🌍 World Feed":
             st.markdown('</div>', unsafe_allow_html=True)
     except: st.error("Feed Error")
 
-# --- ৭. ভিডিও আপলোড (৩ এমবি ও ২০ সেকেন্ড আপডেট করা হয়েছে) ---
+# --- ৭. ভিডিও আপলোড (৩ এমবি ও ২০ সেকেন্ড) ---
 elif tab == "📤 Upload Video":
     if not st.session_state.user: 
         st.warning("Login first!")
@@ -179,6 +178,7 @@ elif tab == "📤 Upload Video":
         file = st.file_uploader("Select Video", type=['mp4'])
         if st.button("🚀 Publish Video") and file:
             today = datetime.now().strftime("%Y-%m-%d")
+            # আপনার স্কিমা অনুযায়ী চেক
             check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
             if len(check.data) >= 3:
                 st.error("Daily limit reached!")
@@ -189,7 +189,7 @@ elif tab == "📤 Upload Video":
                     t_in, t_out = "raw.mp4", "final.mp4"
                     with open(t_in, "wb") as f: f.write(file.getvalue())
                     
-                    # আপডেট: সময় ২০ সেকেন্ড (-t 20) এবং সাইজ ২.৯ এমবি (-fs 2.9M)
+                    # আপডেট: ২০ সেকেন্ড ও ২.৯ এমবি
                     cmd = f'ffmpeg -i {t_in} -t 20 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 2.9M -y {t_out}'
                     subprocess.run(cmd, shell=True)
                     
@@ -197,11 +197,17 @@ elif tab == "📤 Upload Video":
                     v_name = f"v_{uuid.uuid4()}.mp4"
                     with open(t_out, "rb") as f: s_bot.storage.from_("videos").upload(v_name, f.read())
                     v_url = s_bot.storage.from_("videos").get_public_url(v_name)
+                    
+                    # আপনার স্ক্রিনশটের টেবিল ফরম্যাট অনুযায়ী ইনসার্ট
                     supabase.table("videos").insert({
-                        "video_url": v_url, "uploader_name": st.session_state.user,
-                        "uploader_pic": st.session_state.pic, "likes": random.randint(20, 50), 
-                        "views": random.randint(850, 1200), "followers": random.randint(100, 150)
+                        "video_url": v_url, 
+                        "uploader_name": st.session_state.user,
+                        "uploader_pic": st.session_state.pic, 
+                        "likes": random.randint(20, 50), 
+                        "views": random.randint(850, 1200), 
+                        "followers": random.randint(100, 150)
                     }).execute()
+                    
                     st.success("Published!")
                     if os.path.exists(t_in): os.remove(t_in)
                     if os.path.exists(t_out): os.remove(t_out)
