@@ -7,7 +7,7 @@ import subprocess
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# ১. মাইক্রোসফট বিং ও মনেট্যাগ ভেরিফিকেশন (একসাথেই হেড সেকশনে রাখা হয়েছে)
+# ১. আগের হেড সেকশন ও ভেরিফিকেশন (ঠিক আছে)
 st.markdown(
     f"""
     <head>
@@ -18,10 +18,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# আপনার স্মার্ট লিঙ্কটি এখানে সেট করা হলো
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# অটো ব্যানার ফাংশন (এটি ভিডিওর নিচে অটোমেটিক শো করবে)
 def show_auto_moving_banner():
     ad_html = f"""
     <div style="text-align:center; margin: 10px 0;">
@@ -38,7 +36,7 @@ def show_auto_moving_banner():
     """
     components.html(ad_html, height=120)
 
-# ২. সুপাবেস কানেকশন ও জংশন বক্স (অরিজিনাল ডাটা)
+# ২. সুপাবেস কানেকশন ও স্টোরেজ লজিক (সব আপনার অরিজিনাল ডাটা)
 URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
 KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
 supabase = create_client(URL, KEY)
@@ -58,7 +56,7 @@ STORAGE_KEYS = [
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
-# ৩. ফরম্যাট ও অটো ক্লিনআপ
+# ৩. ফরমেট ও ক্লিনআপ (আগের লজিক ঠিক আছে)
 def format_value(value):
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
@@ -75,25 +73,21 @@ def auto_cleanup(target_storage_url):
                 except: pass
         supabase.table("videos").delete().eq("id", old['id']).execute()
 
-# ৪. স্টাইল ও ডিজাইন
+# ৪. স্টাইল (সাদা-কালো মডার্ন ডিজাইন)
 st.markdown("""
     <style>
-    .stApp { background-color: #000; color: #fff; }
-    .video-card { background: #0d0d0d; border: 1px solid #333; border-radius: 15px; padding: 15px; margin-bottom: 25px; }
-    .user-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #00ff00; object-fit: cover; margin-right: 12px; }
-    .stat-box { font-size: 14px; color: #00ff00; font-weight: bold; margin-right: 15px; }
-    .btn-direct { display: block; width: 100%; padding: 10px; margin: 5px 0; color: white !important; text-align: center; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 14px; }
-    .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
-    .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
-    .bg-3 { background: linear-gradient(135deg, #667eea, #764ba2); }
-    .bg-4 { background: linear-gradient(135deg, #f6d365, #fda085); }
-    .banner-box { background: #1a1a1a; border: 1px dashed #ed1c24; padding: 15px; text-align: center; border-radius: 10px; margin: 15px 0; }
+    .stApp { background-color: #f0f2f5; color: #000; }
+    .post-card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #ddd; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    .user-avatar { width: 45px; height: 45px; border-radius: 50%; border: 1px solid #ddd; object-fit: cover; margin-right: 12px; }
+    .stat-box { font-size: 13px; color: #65676b; font-weight: bold; margin-right: 15px; }
+    .btn-direct { display: block; width: 100%; padding: 8px; margin: 5px 0; color: white !important; text-align: center; border-radius: 5px; font-weight: bold; text-decoration: none; font-size: 13px; }
+    .bg-1 { background: #FF416C; } .bg-2 { background: #1DE9B6; } .bg-3 { background: #667eea; } .bg-4 { background: #f6d365; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🛡️ BT AI book")
 
-# ৫. লগইন সিস্টেম
+# ৫. লগইন (আগের লজিক)
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -108,7 +102,7 @@ if not st.session_state.user:
                 st.session_state.pic = user_data.data[0]['profile_pic']
                 st.rerun()
         else:
-            u_pic = st.sidebar.file_uploader("Upload Photo", type=['jpg', 'png', 'jpeg'])
+            u_pic = st.sidebar.file_uploader("Upload Profile Photo", type=['jpg', 'png'])
             if st.sidebar.button("Join Now"):
                 if u_name and u_pic:
                     fname = f"p_{uuid.uuid4()}.jpg"
@@ -125,64 +119,54 @@ else:
         st.session_state.user = None
         st.rerun()
 
-tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
+# মেনু ট্যাব
+tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Post"])
 
-# ৬. মেইন ফিড (ভিডিও দেখার অংশ)
+# ৬. ফিড (ভিডিও এবং ফেসবুক স্টাইল পোস্ট দুটাই দেখাবে)
 if tab == "🌍 World Feed":
     try:
-        res = supabase.table("videos").select("*").execute()
+        res = supabase.table("videos").select("*").order("created_at", desc=True).execute()
         data = res.data if res.data else []
-        random.shuffle(data)
-        for index, v in enumerate(data):
+        for v in data:
             v_id = v['id']
-            st.markdown('<div class="video-card">', unsafe_allow_html=True)
+            st.markdown('<div class="post-card">', unsafe_allow_html=True)
             st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:12px;"><img src="{v.get("uploader_pic", "")}" class="user-avatar"><b>{v.get("uploader_name")}</b></div>', unsafe_allow_html=True)
-            st.video(v['video_url'])
-            try: supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
-            except: pass
+            
+            # লজিক: ভিডিও থাকলে ভিডিও দেখাবে, টেক্সট থাকলে টেক্সট
+            if v.get('video_url'):
+                if v['video_url'].endswith('.mp4'):
+                    st.video(v['video_url'])
+                else: # যদি এটা শুধু ছবি বা পোস্ট হয়
+                    st.write(v.get('post_text', ''))
+                    if v['video_url'].startswith('http'): st.image(v['video_url'])
 
-            # অটো ব্যানার এখানে সেট করা হলো (প্রতিটি ভিডিওর ঠিক নিচে)
             show_auto_moving_banner()
-
             st.markdown(f'''
-                <div class="banner-box">
-                    <a href="{SMART_LINK}" target="_blank" 
-                       style="background:#ed1c24; color:white; padding:8px 20px; border-radius:5px; text-decoration:none; font-weight:bold;">Click to Win Reward 🎁</a>
-                </div>
                 <div style="margin: 10px 0;">
                     <span class="stat-box">👁️ {format_value(v.get("views", 0))} Views</span>
                     <span class="stat-box">❤️ {format_value(v.get("likes", 0))} Likes</span>
-                    <span class="stat-box">👤 {format_value(v.get("followers", 0))} Followers</span>
                 </div>
-                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-1">💰 High CPC Reward 1</a>
-                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-2">💎 Premium Bonus 2</a>
-                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-3">🚀 Mega Earning 3</a>
-                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-4">🎁 Special Gift 4</a>
             ''', unsafe_allow_html=True)
+            
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"❤️ Like", key=f"lk_{v_id}"):
                     supabase.table("videos").update({"likes": v.get("likes", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
-            with c2:
-                if st.button(f"➕ Follow", key=f"fl_{v_id}"):
-                    supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute()
-                    st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
     except: st.error("Feed Error")
 
-# ৭. ভিডিও আপলোড
-elif tab == "📤 Upload Video":
+# ৭. নতুন পোস্টিং লজিক (আগের ভিডিও আপলোড ঠিক রেখে)
+elif tab == "📤 Upload Post":
     if not st.session_state.user: st.warning("Login first!")
     else:
-        file = st.file_uploader("Select Video", type=['mp4'])
-        if st.button("🚀 Publish Video") and file:
-            today = datetime.now().strftime("%Y-%m-%d")
-            check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
-            if len(check.data) >= 3:
-                st.error("Daily limit reached!")
-            else:
-                with st.spinner("Publishing..."):
+        post_type = st.selectbox("কি আপলোড করবেন?", ["ভিডিও (Shorts)", "ছবি/টেক্সট (Facebook Style)"])
+        
+        if post_type == "ভিডিও (Shorts)":
+            file = st.file_uploader("Select Video", type=['mp4'])
+            if st.button("🚀 Publish Video") and file:
+                # আপনার আগের সেই ffmpeg এবং স্টোরেজ লজিক
+                with st.spinner("Processing Video..."):
                     target = random.choice(STORAGE_KEYS)
                     auto_cleanup(target['url'])
                     t_in, t_out = "raw.mp4", "final.mp4"
@@ -195,9 +179,27 @@ elif tab == "📤 Upload Video":
                     v_url = s_bot.storage.from_("videos").get_public_url(v_name)
                     supabase.table("videos").insert({
                         "video_url": v_url, "uploader_name": st.session_state.user,
-                        "uploader_pic": st.session_state.pic, "likes": random.randint(20, 50), 
-                        "views": random.randint(850, 1200), "followers": random.randint(100, 150)
+                        "uploader_pic": st.session_state.pic, "likes": 0, "views": 0
                     }).execute()
-                    st.success("Published!")
-                    os.remove(t_in); os.remove(t_out)
+                    st.success("Video Published!")
+                    os.remove(t_in); os.remove(t_out); st.rerun()
+
+        else: # ফেসবুক স্টাইল পোস্টিং
+            post_txt = st.text_area("আপনার মনের কথা লিখুন...")
+            post_img = st.file_uploader("ছবি যোগ করুন (ঐচ্ছিক)", type=['jpg', 'png'])
+            if st.button("📢 Post Now"):
+                with st.spinner("Posting..."):
+                    img_url = ""
+                    if post_img:
+                        img_name = f"img_{uuid.uuid4()}.jpg"
+                        supabase.storage.from_("videos").upload(img_name, post_img.getvalue())
+                        img_url = supabase.storage.from_("videos").get_public_url(img_name)
+                    
+                    # ডাটাবেসে ভিডিও ইউআরএল এর জায়গায় ছবির ইউআরএল যাবে
+                    supabase.table("videos").insert({
+                        "video_url": img_url, "post_text": post_txt,
+                        "uploader_name": st.session_state.user,
+                        "uploader_pic": st.session_state.pic, "likes": 0, "views": 0
+                    }).execute()
+                    st.success("Post Shared!")
                     st.rerun()
