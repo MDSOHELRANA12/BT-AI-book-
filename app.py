@@ -76,30 +76,19 @@ def show_auto_moving_banner():
     """
     components.html(ad_html, height=120)
 
-# --- ৪. সিএসএস স্টাইল (ব্যাকগ্রাউন্ড সাদা করা হয়েছে) ---
+# --- ৪. সিএসএস স্টাইল ---
 st.markdown("""
     <style>
-    /* মেইন ব্যাকগ্রাউন্ড সাদা */
     .stApp { background-color: #ffffff; color: #000000; }
-    
-    /* ভিডিও কার্ডের ডিজাইন হালকা গ্রে যাতে সাদা ব্যাকগ্রাউন্ডে ফুটে ওঠে */
     .video-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 15px; padding: 15px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    
     .user-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #00c853; object-fit: cover; margin-right: 12px; }
-    
-    /* স্ট্যাট টেক্সট কালার */
     .stat-box { font-size: 14px; color: #333; font-weight: bold; margin-right: 15px; }
-    
     .btn-direct { display: block; width: 100%; padding: 12px; margin: 8px 0; color: white !important; text-align: center; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 15px; transition: 0.3s; }
-    
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
     .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
     .bg-3 { background: linear-gradient(135deg, #667eea, #764ba2); }
     .bg-4 { background: linear-gradient(135deg, #f6d365, #fda085); }
-    
     .banner-box { background: #fff5f5; border: 1px dashed #ed1c24; padding: 15px; text-align: center; border-radius: 10px; margin: 15px 0; }
-    
-    /* সাইডবার কালার অ্যাডজাস্টমেন্ট */
     section[data-testid="stSidebar"] { background-color: #f1f1f1 !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -146,21 +135,14 @@ if tab == "🌍 World Feed":
         res = supabase.table("videos").select("*").execute()
         data = res.data if res.data else []
         random.shuffle(data)
-        
         for index, v in enumerate(data):
             v_id = v['id']
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:12px; color:#000;"><img src="{v.get("uploader_pic", "")}" class="user-avatar"><b>{v.get("uploader_name")}</b></div>', unsafe_allow_html=True)
-            
             st.video(v['video_url'])
-            
-            try: 
-                supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
-            except: 
-                pass
-
+            try: supabase.table("videos").update({"views": v.get("views", 0) + 1}).eq("id", v_id).execute()
+            except: pass
             show_auto_moving_banner()
-
             st.markdown(f'''
                 <div class="banner-box">
                     <a href="{SMART_LINK}" target="_blank" 
@@ -176,7 +158,6 @@ if tab == "🌍 World Feed":
                 <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-3">🚀 Mega Earning 3</a>
                 <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-4">🎁 Special Gift 4</a>
             ''', unsafe_allow_html=True)
-            
             c1, c2 = st.columns(2)
             with c1:
                 if st.button(f"❤️ Like", key=f"lk_{v_id}"):
@@ -187,10 +168,9 @@ if tab == "🌍 World Feed":
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-    except: 
-        st.error("Feed Error")
+    except: st.error("Feed Error")
 
-# --- ৭. ভিডিও আপলোড ---
+# --- ৭. ভিডিও আপলোড (৩ এমবি ও ২০ সেকেন্ড আপডেট করা হয়েছে) ---
 elif tab == "📤 Upload Video":
     if not st.session_state.user: 
         st.warning("Login first!")
@@ -200,38 +180,28 @@ elif tab == "📤 Upload Video":
         if st.button("🚀 Publish Video") and file:
             today = datetime.now().strftime("%Y-%m-%d")
             check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
-            
             if len(check.data) >= 3:
                 st.error("Daily limit reached!")
             else:
                 with st.spinner("Publishing..."):
                     target = random.choice(STORAGE_KEYS)
                     auto_cleanup(target['url'])
-                    
                     t_in, t_out = "raw.mp4", "final.mp4"
-                    with open(t_in, "wb") as f: 
-                        f.write(file.getvalue())
+                    with open(t_in, "wb") as f: f.write(file.getvalue())
                     
-                    cmd = f'ffmpeg -i {t_in} -t 15 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 1.9M -y {t_out}'
+                    # আপডেট: সময় ২০ সেকেন্ড (-t 20) এবং সাইজ ২.৯ এমবি (-fs 2.9M)
+                    cmd = f'ffmpeg -i {t_in} -t 20 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 2.9M -y {t_out}'
                     subprocess.run(cmd, shell=True)
                     
                     s_bot = create_client(target['url'], target['key'])
                     v_name = f"v_{uuid.uuid4()}.mp4"
-                    
-                    with open(t_out, "rb") as f: 
-                        s_bot.storage.from_("videos").upload(v_name, f.read())
-                    
+                    with open(t_out, "rb") as f: s_bot.storage.from_("videos").upload(v_name, f.read())
                     v_url = s_bot.storage.from_("videos").get_public_url(v_name)
-                    
                     supabase.table("videos").insert({
-                        "video_url": v_url, 
-                        "uploader_name": st.session_state.user,
-                        "uploader_pic": st.session_state.pic, 
-                        "likes": random.randint(20, 50), 
-                        "views": random.randint(850, 1200), 
-                        "followers": random.randint(100, 150)
+                        "video_url": v_url, "uploader_name": st.session_state.user,
+                        "uploader_pic": st.session_state.pic, "likes": random.randint(20, 50), 
+                        "views": random.randint(850, 1200), "followers": random.randint(100, 150)
                     }).execute()
-                    
                     st.success("Published!")
                     if os.path.exists(t_in): os.remove(t_in)
                     if os.path.exists(t_out): os.remove(t_out)
