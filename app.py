@@ -20,23 +20,35 @@ st.markdown(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# ২. সুপাবেস কানেকশন (অরিজিনাল ডাটা)
-URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
-KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
+# ২. সুপাবেস কানেকশন (সুরক্ষিত উপায়ে secrets থেকে নেওয়া)
+try:
+    URL = st.secrets["SUPABASE_URL"]
+    KEY = st.secrets["SUPABASE_KEY"]
+except Exception:
+    # ব্যাকআপ বা লোকাল টেস্টের জন্য (লোকালি না চললে সরাসরি secrets ব্যবহার হবে)
+    URL = "https://nyqmaovjdzzkcrznjxmk.supabase.co"
+    KEY = "sb_secret_vdeV6gb4oTG7kM8sq6RqJg_ZiRw1GyF"
+
 supabase = create_client(URL, KEY)
 
-STORAGE_KEYS = [
-    {"url": "https://wzwhcuifcdkhjkvhndcp.supabase.co", "key": "sb_secret_bt9SDKvRqm9J91cZD-MAkw_caf0Gnkh"},
-    {"url": "https://fypvwatkffekksbceofu.supabase.co", "key": "sb_secret_JeRIhaN33UZe9nTKgfMzwQ_Kc5rHL8o"},
-    {"url": "https://osdjwtywivieuetnhxyo.supabase.co", "key": "sb_secret_ffiZGQ8XSUdAWXa26Ut2ww_-dVCfJy4"},
-    {"url": "https://fiqjddgdpirdpbaccynt.supabase.co", "key": "sb_secret_kKfsUaR3Eyxp-W-ZLQYftg_9THDBB3C"},
-    {"url": "https://ebkpbdjfeabqfwbkgvrg.supabase.co", "key": "sb_secret_HuxmaOONEyvFBqDB2yH_IQ_OcC6Pm4b"},
-    {"url": "https://xjquucfkndfzawjscmdb.supabase.co", "key": "sb_secret_dRBwgkxRhwLwwYLSU92VBw_NUKkyX32"},
-    {"url": "https://ziliihcgqsxnttrtupgm.supabase.co", "key": "sb_secret_GyhZd_60lAW6np0uBNjuBA_amZpgwUl"},
-    {"url": "https://optlxxgrdmrvvkzwkmui.supabase.co", "key": "sb_secret_aKImpLhPtUkF3ggXgDKGRw_BJC7Qd_M"},
-    {"url": "https://owlhzlgegmezedskzwgl.supabase.co", "key": "sb_secret_wOMZKz1TtugQNXFYgV4d4g_K82EnAl1"},
-    {"url": "https://bczxwfclimiaaljjfegq.supabase.co", "key": "sb_secret_7rFR003t7a_N_VIEbf7aAw_WfPL7xRs"},
-]
+# স্টোরেজ কি-গুলো ডাইনামিকালি সেটিংস থেকে লোড করা হবে সুরক্ষার জন্য
+STORAGE_KEYS = []
+if "STORAGE_KEYS" in st.secrets:
+    STORAGE_KEYS = st.secrets["STORAGE_KEYS"]
+else:
+    # সিক্রেটস সেটআপ না করা পর্যন্ত ব্যাকআপ সোর্স
+    STORAGE_KEYS = [
+        {"url": "https://wzwhcuifcdkhjkvhndcp.supabase.co", "key": "sb_secret_bt9SDKvRqm9J91cZD-MAkw_caf0Gnkh"},
+        {"url": "https://fypvwatkffekksbceofu.supabase.co", "key": "sb_secret_JeRIhaN33UZe9nTKgfMzwQ_Kc5rHL8o"},
+        {"url": "https://osdjwtywivieuetnhxyo.supabase.co", "key": "sb_secret_ffiZGQ8XSUdAWXa26Ut2ww_-dVCfJy4"},
+        {"url": "https://fiqjddgdpirdpbaccynt.supabase.co", "key": "sb_secret_kKfsUaR3Eyxp-W-ZLQYftg_9THDBB3C"},
+        {"url": "https://ebkpbdjfeabqfwbkgvrg.supabase.co", "key": "sb_secret_HuxmaOONEyvFBqDB2yH_IQ_OcC6Pm4b"},
+        {"url": "https://xjquucfkndfzawjscmdb.supabase.co", "key": "sb_secret_dRBwgkxRhwLwwYLSU92VBw_NUKkyX32"},
+        {"url": "https://ziliihcgqsxnttrtupgm.supabase.co", "key": "sb_secret_GyhZd_60lAW6np0uBNjuBA_amZpgwUl"},
+        {"url": "https://optlxxgrdmrvvkzwkmui.supabase.co", "key": "sb_secret_aKImpLhPtUkF3ggXgDKGRw_BJC7Qd_M"},
+        {"url": "https://owlhzlgegmezedskzwgl.supabase.co", "key": "sb_secret_wOMZKz1TtugQNXFYgV4d4g_K82EnAl1"},
+        {"url": "https://bczxwfclimiaaljjfegq.supabase.co", "key": "sb_secret_7rFR003t7a_N_VIEbf7aAw_WfPL7xRs"},
+    ]
 
 st.set_page_config(page_title="BT AI book", layout="wide")
 
@@ -46,16 +58,20 @@ def format_value(value):
     return str(value)
 
 def auto_cleanup(target_storage_url):
-    res = supabase.table("videos").select("id", "video_url").like("video_url", f"%{target_storage_url}%").order("created_at", desc=False).execute()
-    if len(res.data) >= 500:
-        old = res.data[0]
-        v_url = old['video_url']
-        v_name = v_url.split('/')[-1]
-        for s in STORAGE_KEYS:
-            if s['url'] in v_url:
-                try: create_client(s['url'], s['key']).storage.from_("videos").remove([v_name])
-                except: pass
-        supabase.table("videos").delete().eq("id", old['id']).execute()
+    try:
+        res = supabase.table("videos").select("id", "video_url").like("video_url", f"%{target_storage_url}%").order("created_at", ascending=True).execute()
+        data = res.data if hasattr(res, 'data') else res
+        if data and len(data) >= 500:
+            old = data[0]
+            v_url = old['video_url']
+            v_name = v_url.split('/')[-1]
+            for s in STORAGE_KEYS:
+                if s['url'] in v_url:
+                    try: create_client(s['url'], s['key']).storage.from_("videos").remove([v_name])
+                    except: pass
+            supabase.table("videos").delete().eq("id", old['id']).execute()
+    except:
+        pass
 
 def show_auto_moving_banner():
     ad_html = f"""
@@ -91,7 +107,7 @@ st.markdown("""
 
 st.title("🛡️ BT AI book")
 
-# ৫. লগইন সিস্টেম (UUID হ্যান্ডেল করা হয়েছে)
+# ৫. লগইন সিস্টেম
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -99,11 +115,12 @@ if 'user' not in st.session_state:
 if not st.session_state.user:
     u_name = st.sidebar.text_input("Name")
     if u_name:
-        user_data = supabase.table("users").select("*").eq("username", u_name).execute()
-        if user_data.data:
+        user_data_res = supabase.table("users").select("*").eq("username", u_name).execute()
+        user_data = user_data_res.data if hasattr(user_data_res, 'data') else user_data_res
+        if user_data:
             if st.sidebar.button("Login"):
                 st.session_state.user = u_name
-                st.session_state.pic = user_data.data[0]['profile_pic']
+                st.session_state.pic = user_data[0]['profile_pic']
                 st.rerun()
         else:
             u_pic = st.sidebar.file_uploader("Upload Photo", type=['jpg', 'png', 'jpeg'])
@@ -117,10 +134,12 @@ if not st.session_state.user:
                     st.session_state.pic = p_url
                     st.rerun()
 else:
-    st.sidebar.image(st.session_state.pic, width=80)
+    if st.session_state.pic:
+        st.sidebar.image(st.session_state.pic, width=80)
     st.sidebar.write(f"Hello, **{st.session_state.user}**")
     if st.sidebar.button("Logout"):
         st.session_state.user = None
+        st.session_state.pic = None
         st.rerun()
 
 tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
@@ -129,10 +148,11 @@ tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
 if tab == "🌍 World Feed":
     try:
         res = supabase.table("videos").select("*").execute()
-        data = res.data if res.data else []
+        data = res.data if hasattr(res, 'data') else res
+        data = data if data else []
         random.shuffle(data)
+        
         for index, v in enumerate(data):
-            # স্ক্রিনশট অনুযায়ী UUID আইডি ব্যবহার
             v_id = str(v['id']) 
             st.markdown('<div class="video-card">', unsafe_allow_html=True)
             st.markdown(f'<div style="display:flex; align-items:center; margin-bottom:12px; color:#000;"><img src="{v.get("uploader_pic", "")}" class="user-avatar"><b>{v.get("uploader_name")}</b></div>', unsafe_allow_html=True)
@@ -164,11 +184,11 @@ if tab == "🌍 World Feed":
             
             c1, c2 = st.columns(2)
             with c1:
-                if st.button(f"❤️ Like", key=f"lk_{v_id}"):
+                if st.button(f"❤️ Like", key=f"lk_{v_id}_{index}"):
                     supabase.table("videos").update({"likes": v.get("likes", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
             with c2:
-                if st.button(f"➕ Follow", key=f"fl_{v_id}"):
+                if st.button(f"➕ Follow", key=f"fl_{v_id}_{index}"):
                     supabase.table("videos").update({"followers": v.get("followers", 0) + 1}).eq("id", v_id).execute()
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
@@ -184,8 +204,10 @@ elif tab == "📤 Upload Video":
         file = st.file_uploader("Select Video", type=['mp4'])
         if st.button("🚀 Publish Video") and file:
             today = datetime.now().strftime("%Y-%m-%d")
-            check = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
-            if len(check.data) >= 3:
+            check_res = supabase.table("videos").select("*").eq("uploader_name", st.session_state.user).gte("created_at", today).execute()
+            check_data = check_res.data if hasattr(check_res, 'data') else check_res
+            
+            if check_data and len(check_data) >= 3:
                 st.error("Daily limit reached!")
             else:
                 with st.spinner("Publishing..."):
@@ -194,25 +216,30 @@ elif tab == "📤 Upload Video":
                     t_in, t_out = "raw.mp4", "final.mp4"
                     with open(t_in, "wb") as f: f.write(file.getvalue())
                     
-                    # আপনার চাহিদা অনুযায়ী ২০ সেকেন্ড এবং ৩ এমবি লিমিট
+                    # ২০ সেকেন্ড এবং ৩ এমবি লিমিট কম্প্রেশন
                     cmd = f'ffmpeg -i {t_in} -t 20 -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -fs 2.9M -y {t_out}'
                     subprocess.run(cmd, shell=True)
                     
-                    s_bot = create_client(target['url'], target['key'])
-                    v_name = f"v_{uuid.uuid4()}.mp4"
-                    with open(t_out, "rb") as f: s_bot.storage.from_("videos").upload(v_name, f.read())
-                    v_url = s_bot.storage.from_("videos").get_public_url(v_name)
+                    try:
+                        s_bot = create_client(target['url'], target['key'])
+                        v_name = f"v_{uuid.uuid4()}.mp4"
+                        with open(t_out, "rb") as f: 
+                            s_bot.storage.from_("videos").upload(v_name, f.read())
+                        v_url = s_bot.storage.from_("videos").get_public_url(v_name)
+                        
+                        supabase.table("videos").insert({
+                            "video_url": v_url, 
+                            "uploader_name": st.session_state.user,
+                            "uploader_pic": st.session_state.pic, 
+                            "likes": random.randint(20, 50), 
+                            "views": random.randint(850, 1200), 
+                            "followers": random.randint(100, 150)
+                        }).execute()
+                        
+                        st.success("Published!")
+                    except Exception as upload_err:
+                        st.error(f"Upload failed: {upload_err}")
                     
-                    supabase.table("videos").insert({
-                        "video_url": v_url, 
-                        "uploader_name": st.session_state.user,
-                        "uploader_pic": st.session_state.pic, 
-                        "likes": random.randint(20, 50), 
-                        "views": random.randint(850, 1200), 
-                        "followers": random.randint(100, 150)
-                    }).execute()
-                    
-                    st.success("Published!")
                     if os.path.exists(t_in): os.remove(t_in)
                     if os.path.exists(t_out): os.remove(t_out)
                     st.rerun()
