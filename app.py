@@ -1,4 +1,4 @@
-  import streamlit as st
+import streamlit as st
 import uuid
 import random
 import os
@@ -139,12 +139,11 @@ else:
     if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.session_state.pic = None
-        st.close()
         st.rerun()
 
 tab = st.sidebar.radio("Menu", ["🌍 World Feed", "📤 Upload Video"])
 
-# ৬. মেইন ফিড (ভিдио দেখার অংশ)
+# ৬. মেইন ফিড (ভিডিও দেখার অংশ)
 if tab == "🌍 World Feed":
     try:
         cursor.execute("SELECT * FROM videos")
