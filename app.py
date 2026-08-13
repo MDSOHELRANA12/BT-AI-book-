@@ -1,11 +1,9 @@
-import streamlit as st
-import uuid
+import streamlit as stimport uuid
 import random
 import os
 import sqlite3
 from datetime import datetime
 import streamlit.components.v1 as components
-import base64
 
 # 1. Page Configuration
 st.set_page_config(page_title="BT AI Book — Verified Network", layout="wide", initial_sidebar_state="expanded")
@@ -73,22 +71,13 @@ def format_value(value):
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
-def get_image_base64(img_path):
-    if img_path and os.path.exists(img_path):
-        with open(img_path, "rb") as image_file:
-            encoded = base64.b64encode(image_file.read()).decode()
-            return f"data:image/jpeg;base64,{encoded}"
-    return "https://www.w3schools.com/howto/img_avatar.png"
-
-def render_user_header(name, pic_path=None, is_verified=1, video_type="LONG"):
-    img_src = get_image_base64(pic_path)
+def render_user_header(name, is_verified=1, video_type="LONG"):
     blue_tick_html = ""
     if is_verified:
         blue_tick_html = '''<span style="background-color:#1877F2; color:white; border-radius:50%; width:16px; height:16px; font-size:10px; font-weight:bold; display:inline-flex; align-items:center; justify-content:center; margin-left:4px;" title="Verified Creator">✓</span>'''
     
     return f'''
     <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <img src="{img_src}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #1877F2; margin-right: 10px;">
         <div>
             <div style="display: flex; align-items: center; font-weight: bold; font-size: 16px; color: #000000;">
                 <span>{name}</span>
@@ -98,23 +87,6 @@ def render_user_header(name, pic_path=None, is_verified=1, video_type="LONG"):
         </div>
     </div>
     '''
-
-def render_autoplay_video(video_path):
-    """Custom HTML5 Video Player with AutoPlay and Loop"""
-    if os.path.exists(video_path):
-        with open(video_path, "rb") as f:
-            video_bytes = f.read()
-            encoded_video = base64.b64encode(video_bytes).decode('utf-8')
-        
-        video_html = f'''
-        <video width="100%" height="auto" autoplay muted loop playsinline controls style="border-radius: 10px; max-height: 550px; background-color: #000;">
-            <source src="data:video/mp4;base64,{encoded_video}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        '''
-        st.markdown(video_html, unsafe_allow_html=True)
-    else:
-        st.error("Video file not found.")
 
 def show_auto_moving_banner():
     ad_html = f"""
@@ -241,19 +213,21 @@ if tab == "🌍 World Feed":
             v_id = str(v['id'])
             v_type = v.get("video_type", "long")
             uploader_name = v.get("uploader_name", "Unknown User")
-            uploader_pic = v.get("uploader_pic", None)
             
             st.markdown('<div class="long-video-card">', unsafe_allow_html=True)
             
-            # User Header with Profile Pic and Blue Tick
-            user_header = render_user_header(uploader_name, uploader_pic, is_verified=1, video_type=v_type)
+            # User Header with Verified Badge
+            user_header = render_user_header(uploader_name, is_verified=1, video_type=v_type)
             st.markdown(user_header, unsafe_allow_html=True)
             
             if v.get("title"):
                 st.markdown(f"### {v.get('title')}")
             
-            # Autoplay Video Player
-            render_autoplay_video(v['video_url'])
+            # Streamlit Optimized Fast Video Player
+            if os.path.exists(v['video_url']):
+                st.video(v['video_url'])
+            else:
+                st.error("Video file not found.")
             
             # Update View Counter
             new_views = v.get("views", 0) + 1
@@ -300,12 +274,9 @@ elif tab == "👤 My Profile & Earnings":
         total_likes = sum([v.get("likes", 0) for v in my_videos])
         total_views = sum([v.get("views", 0) for v in my_videos])
         
-        my_pic_src = get_image_base64(st.session_state.pic)
-        
         st.markdown(f'''
             <div class="profile-card">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <img src="{my_pic_src}" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #1877F2;">
                     <div>
                         <h2 style="margin: 0; display: flex; align-items: center; color: #000;">
                             {st.session_state.user} 
@@ -328,16 +299,16 @@ elif tab == "👤 My Profile & Earnings":
 
         # Global Banking & Payment Setup Section
         st.subheader("💳 Global Payout & Bank Settings")
-        st.info("Supported Methods: International Wire Transfer, Visa/Mastercard Debit Cards, bKash, Nagad, Paypal & Crypto Wallet.")
+        st.info("Supported Methods: Visa/Mastercard Debit Cards, International Wire Transfer, bKash, Nagad, Paypal & Crypto Wallet.")
         
         with st.form("payment_settings_form"):
             pay_method = st.selectbox("Select Payout Method", [
-                "International Bank Transfer (SWIFT/IBAN)",
                 "Visa / Mastercard Debit Card",
+                "International Bank Transfer (SWIFT/IBAN)",
                 "Mobile Financial Service (bKash / Nagad)",
                 "PayPal / Crypto (USDT)"
             ])
-            acc_info = st.text_area("Account Details (Bank Name, Account No, IBAN/SWIFT Code, Card Number or Mobile Number)")
+            acc_info = st.text_area("Account Details (Card Number, Bank Name, Account No, IBAN/SWIFT Code or Mobile Number)")
             submit_payout = st.form_submit_button("💾 Save Payment Settings")
             
             if submit_payout:
@@ -354,7 +325,8 @@ elif tab == "👤 My Profile & Earnings":
             for idx, mv in enumerate(my_videos):
                 with cols[idx % 2]:
                     st.write(f"**{mv.get('title', 'Untitled Video')}**")
-                    render_autoplay_video(mv['video_url'])
+                    if os.path.exists(mv['video_url']):
+                        st.video(mv['video_url'])
                     st.caption(f"👁️ {format_value(mv.get('views', 0))} views • ❤️ {format_value(mv.get('likes', 0))} likes")
         conn.close()
 
