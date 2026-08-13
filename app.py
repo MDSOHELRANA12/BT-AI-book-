@@ -7,10 +7,10 @@ from datetime import datetime
 import streamlit.components.v1 as components
 import base64
 
-# ১. পেজ কনফিগারেশন
+# 1. Page Configuration
 st.set_page_config(page_title="BT AI Book — Verified Network", layout="wide", initial_sidebar_state="expanded")
 
-# মেটা ট্যাগ ও মনিটাইজেশন স্ক্রিপ্ট
+# Meta Tags & Monetization Scripts
 components.html(
     """
     <meta name="msvalidate.01" content="e776b8ce73ea3dcc07551e8a021a0907">
@@ -21,7 +21,7 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# ২. লোকাল ডাটাবেস ও স্টোরেজ
+# 2. Local Storage and Database Setup
 DB_FILE = "local_storage.db"
 VIDEO_DIR = "stored_videos"
 PROFILE_DIR = "stored_profiles"
@@ -43,6 +43,8 @@ def init_db():
             username TEXT PRIMARY KEY,
             profile_pic TEXT,
             is_verified INTEGER DEFAULT 1,
+            payment_method TEXT,
+            account_details TEXT,
             created_at TEXT
         )
     ''')
@@ -65,34 +67,30 @@ def init_db():
 
 init_db()
 
-# ৩. হেল্পার ফাংশন (গোল সুন্দর প্রোফাইল পিকচার ও ব্লু-টিক সহ)
+# 3. Helper Functions
 def format_value(value):
     if value >= 1000000: return f"{value/1000000:.1f}M"
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
 def get_image_base64(img_path):
-    """ছবিকে HTML এ দেখানোর জন্য Base64 এ কনভার্ট করার ফাংশন"""
     if img_path and os.path.exists(img_path):
         with open(img_path, "rb") as image_file:
             encoded = base64.b64encode(image_file.read()).decode()
             return f"data:image/jpeg;base64,{encoded}"
-    # ডিফল্ট প্রোফাইল আইকন (যদি ছবি না থাকে)
     return "https://www.w3schools.com/howto/img_avatar.png"
 
 def render_user_header(name, pic_path=None, is_verified=1, video_type="LONG"):
-    """প্রোফাইল পিকচার + ইউজারনেম + ভেরিফাইড ব্যাজ লেআউট"""
     img_src = get_image_base64(pic_path)
-    
     blue_tick_html = ""
     if is_verified:
         blue_tick_html = '''<span style="background-color:#1877F2; color:white; border-radius:50%; width:16px; height:16px; font-size:10px; font-weight:bold; display:inline-flex; align-items:center; justify-content:center; margin-left:4px;" title="Verified Creator">✓</span>'''
     
-    header_html = f'''
+    return f'''
     <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <img src="{img_src}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #1877F2; margin-right: 10px;">
+        <img src="{img_src}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #1877F2; margin-right: 10px;">
         <div>
-            <div style="display: flex; align-items: center; font-weight: bold; font-size: 16px;">
+            <div style="display: flex; align-items: center; font-weight: bold; font-size: 16px; color: #000000;">
                 <span>{name}</span>
                 {blue_tick_html}
                 <span style="color: #65676B; font-weight: normal; font-size: 13px; margin-left: 8px;">• 🎬 {video_type.upper()}</span>
@@ -100,7 +98,23 @@ def render_user_header(name, pic_path=None, is_verified=1, video_type="LONG"):
         </div>
     </div>
     '''
-    return header_html
+
+def render_autoplay_video(video_path):
+    """Custom HTML5 Video Player with AutoPlay and Loop"""
+    if os.path.exists(video_path):
+        with open(video_path, "rb") as f:
+            video_bytes = f.read()
+            encoded_video = base64.b64encode(video_bytes).decode('utf-8')
+        
+        video_html = f'''
+        <video width="100%" height="auto" autoplay muted loop playsinline controls style="border-radius: 10px; max-height: 550px; background-color: #000;">
+            <source src="data:video/mp4;base64,{encoded_video}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        '''
+        st.markdown(video_html, unsafe_allow_html=True)
+    else:
+        st.error("Video file not found.")
 
 def show_auto_moving_banner():
     ad_html = f"""
@@ -118,7 +132,7 @@ def show_auto_moving_banner():
     """
     components.html(ad_html, height=100)
 
-# ৪. সিএসএস ডিজাইন
+# 4. Custom Styling
 st.markdown("""
     <style>
     .stApp { background-color: #ffffff; color: #000000; }
@@ -140,7 +154,7 @@ st.markdown("""
     .monetization-box {
         background: linear-gradient(135deg, #11998e, #38ef7d);
         color: white;
-        padding: 15px;
+        padding: 18px;
         border-radius: 12px;
         margin-top: 15px;
         margin-bottom: 15px;
@@ -154,17 +168,17 @@ st.markdown("""
 
 st.title("🛡️ BT AI Book — Verified Network")
 
-# ৫. সেশন স্টেট
+# 5. Session State Initialization
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
     st.session_state.is_verified = 1
 
-# ৬. সাইডবার: ফেস লগইন
+# 6. Sidebar: Face ID & Authentication
 st.sidebar.header("📸 Face ID Verification")
 
 if not st.session_state.user:
-    u_name = st.sidebar.text_input("আপনার নাম (Username)")
+    u_name = st.sidebar.text_input("Username")
     camera_photo = st.sidebar.camera_input("Take Face Scan", key="face_cam")
     
     if u_name and camera_photo:
@@ -174,14 +188,14 @@ if not st.session_state.user:
         user_data = cursor.fetchone()
         
         if user_data:
-            if st.sidebar.button("🔓 ফেস স্ক্যান দিয়ে লগইন করুন"):
+            if st.sidebar.button("🔓 Login with Face ID"):
                 st.session_state.user = u_name
                 st.session_state.pic = user_data['profile_pic']
                 st.session_state.is_verified = user_data['is_verified']
                 conn.close()
                 st.rerun()
         else:
-            if st.sidebar.button("✨ নতুন একাউন্ট খুলুন (ব্লু টিকসহ)"):
+            if st.sidebar.button("✨ Create Verified Account"):
                 fname = os.path.join(PROFILE_DIR, f"p_{uuid.uuid4()}.jpg")
                 with open(fname, "wb") as f:
                     f.write(camera_photo.getvalue())
@@ -195,22 +209,22 @@ if not st.session_state.user:
                 st.session_state.user = u_name
                 st.session_state.pic = fname
                 st.session_state.is_verified = 1
-                st.sidebar.success("🎉 একাউন্ট তৈরি সফল!")
+                st.sidebar.success("🎉 Account Created Successfully!")
                 st.rerun()
 else:
     if st.session_state.pic and os.path.exists(st.session_state.pic):
         st.sidebar.image(st.session_state.pic, width=90)
     
-    st.sidebar.markdown(f"স্বাগতম, **{st.session_state.user}**", unsafe_allow_html=True)
+    st.sidebar.markdown(f"Welcome, **{st.session_state.user}**", unsafe_allow_html=True)
     if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.session_state.pic = None
         st.session_state.is_verified = 1
         st.rerun()
 
-tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "👤 My Profile", "📤 Upload Video"])
+tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "👤 My Profile & Earnings", "📤 Upload Video"])
 
-# ৭. মেইন ফিড
+# 7. World Feed Section
 if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -221,7 +235,7 @@ if tab == "🌍 World Feed":
         random.shuffle(data)
         
         if not data:
-            st.info("এখনো কোনো ভিডিও নেই। প্রথম ভিডিওটি আপলোড করুন!")
+            st.info("No videos available yet. Be the first to upload!")
 
         for index, v in enumerate(data):
             v_id = str(v['id'])
@@ -231,20 +245,17 @@ if tab == "🌍 World Feed":
             
             st.markdown('<div class="long-video-card">', unsafe_allow_html=True)
             
-            # প্রোফাইল পিকচার + ইউজারনেম + ভেরিফাইড টিক রেন্ডার
+            # User Header with Profile Pic and Blue Tick
             user_header = render_user_header(uploader_name, uploader_pic, is_verified=1, video_type=v_type)
             st.markdown(user_header, unsafe_allow_html=True)
             
             if v.get("title"):
                 st.markdown(f"### {v.get('title')}")
             
-            # ভিডিও প্লেয়ার
-            if os.path.exists(v['video_url']):
-                st.video(v['video_url'])
-            else:
-                st.error("ভিডিও ফাইলটি পাওয়া যায়নি।")
+            # Autoplay Video Player
+            render_autoplay_video(v['video_url'])
             
-            # ভিউ সংখ্যা আপডেট
+            # Update View Counter
             new_views = v.get("views", 0) + 1
             cursor.execute("UPDATE videos SET views = ? WHERE id = ?", (new_views, v_id))
             conn.commit()
@@ -275,10 +286,10 @@ if tab == "🌍 World Feed":
     finally:
         conn.close()
 
-# ৮. মাই প্রোফাইল ও গ্লোবাল মনিটাইজেশন
-elif tab == "👤 My Profile":
+# 8. Profile & Global Banking Setup
+elif tab == "👤 My Profile & Earnings":
     if not st.session_state.user:
-        st.warning("আপনার প্রোফাইল দেখতে প্রথমে লগইন করুন!")
+        st.warning("Please login with Face ID to view your profile.")
     else:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -289,16 +300,14 @@ elif tab == "👤 My Profile":
         total_likes = sum([v.get("likes", 0) for v in my_videos])
         total_views = sum([v.get("views", 0) for v in my_videos])
         
-        # প্রোফাইল ছবি
         my_pic_src = get_image_base64(st.session_state.pic)
         
-        # প্রোফাইল কার্ড
         st.markdown(f'''
             <div class="profile-card">
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <img src="{my_pic_src}" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #1877F2;">
                     <div>
-                        <h2 style="margin: 0; display: flex; align-items: center;">
+                        <h2 style="margin: 0; display: flex; align-items: center; color: #000;">
                             {st.session_state.user} 
                             <span style="background-color:#1877F2; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; font-weight:bold; display:inline-flex; align-items:center; justify-content:center; margin-left:6px;">✓</span>
                         </h2>
@@ -306,39 +315,58 @@ elif tab == "👤 My Profile":
                     </div>
                 </div>
                 <hr style="margin: 15px 0;">
-                <p>📹 আপলোড: <b>{len(my_videos)}</b>টি | ❤️ লাইক: <b>{format_value(total_likes)}</b> | 👁️ ভিউ: <b>{format_value(total_views)}</b></p>
+                <p style="color: #000;">📹 Uploads: <b>{len(my_videos)}</b> | ❤️ Likes: <b>{format_value(total_likes)}</b> | 👁️ Views: <b>{format_value(total_views)}</b></p>
             </div>
             
             <div class="monetization-box">
                 <h3>🌐 Global Auto-Monetization Program</h3>
-                <p>✅ <b>Status: Enabled for Everyone (উন্মুক্ত মনিটাইজেশন)</b></p>
-                <p>💵 আনুমানিক আয় (Est. Revenue): <b>${(total_views * 0.002) + (total_likes * 0.005):.2f} USD</b></p>
-                <small>* সারা বিশ্বের যেকোনো প্রান্ত থেকে দেখা ভিউ এবং লাইকের জন্য অটোমেটিক ইনকাম যোগ হচ্ছে।</small>
+                <p>✅ <b>Status: Active & Unlocked Globally</b></p>
+                <p>💵 Est. Earnings: <b>${(total_views * 0.002) + (total_likes * 0.005):.2f} USD</b></p>
+                <small>* Automated revenue generated from global views, likes, and engagement.</small>
             </div>
         ''', unsafe_allow_html=True)
+
+        # Global Banking & Payment Setup Section
+        st.subheader("💳 Global Payout & Bank Settings")
+        st.info("Supported Methods: International Wire Transfer, Visa/Mastercard Debit Cards, bKash, Nagad, Paypal & Crypto Wallet.")
         
-        st.subheader("🎬 আমার ভিডিওসমূহ")
+        with st.form("payment_settings_form"):
+            pay_method = st.selectbox("Select Payout Method", [
+                "International Bank Transfer (SWIFT/IBAN)",
+                "Visa / Mastercard Debit Card",
+                "Mobile Financial Service (bKash / Nagad)",
+                "PayPal / Crypto (USDT)"
+            ])
+            acc_info = st.text_area("Account Details (Bank Name, Account No, IBAN/SWIFT Code, Card Number or Mobile Number)")
+            submit_payout = st.form_submit_button("💾 Save Payment Settings")
+            
+            if submit_payout:
+                cursor.execute("UPDATE users SET payment_method = ?, account_details = ? WHERE username = ?", 
+                               (pay_method, acc_info, st.session_state.user))
+                conn.commit()
+                st.success("✅ Payment method updated successfully!")
+
+        st.subheader("🎬 My Uploaded Videos")
         if not my_videos:
-            st.info("আপনি এখনো কোনো ভিডিও আপলোড করেননি।")
+            st.info("You haven't uploaded any videos yet.")
         else:
             cols = st.columns(2)
             for idx, mv in enumerate(my_videos):
                 with cols[idx % 2]:
                     st.write(f"**{mv.get('title', 'Untitled Video')}**")
-                    if os.path.exists(mv['video_url']):
-                        st.video(mv['video_url'])
+                    render_autoplay_video(mv['video_url'])
                     st.caption(f"👁️ {format_value(mv.get('views', 0))} views • ❤️ {format_value(mv.get('likes', 0))} likes")
         conn.close()
 
-# ৯. ভিডিও আপলোড
+# 9. Upload Video Section
 elif tab == "📤 Upload Video":
     if not st.session_state.user:
-        st.warning("ভিডিও আপলোড করতে প্রথমে ফেস স্ক্যান করে লগইন করুন!")
+        st.warning("Please login with Face ID to upload videos.")
     else:
-        st.markdown("<h3>আপনার ভিডিও পাবলিশ করুন</h3>", unsafe_allow_html=True)
+        st.markdown("<h3>Publish Your Video</h3>", unsafe_allow_html=True)
         
-        v_title = st.text_input("ভিডিও টাইটেল")
-        v_type = st.selectbox("ভিডিওর ধরন", ["Long Video", "Short Video"])
+        v_title = st.text_input("Video Title")
+        v_type = st.selectbox("Video Format", ["Long Video", "Short Video"])
         file = st.file_uploader("Select Video File (MP4)", type=['mp4'])
         
         if st.button("🚀 Publish Video") and file:
@@ -350,10 +378,10 @@ elif tab == "📤 Upload Video":
             check_data = cursor.fetchall()
             
             if check_data and len(check_data) >= 5:
-                st.error("দৈনিক ৫টির বেশি ভিডিও আপলোড করা যাবে না!")
+                st.error("Upload limit reached! Maximum 5 videos per day.")
                 conn.close()
             else:
-                with st.spinner("পাবলিশ হচ্ছে..."):
+                with st.spinner("Publishing video globally..."):
                     v_id = str(uuid.uuid4())
                     v_name = os.path.join(VIDEO_DIR, f"v_{v_id}.mp4")
                     
@@ -379,5 +407,5 @@ elif tab == "📤 Upload Video":
                     ))
                     conn.commit()
                     conn.close()
-                    st.success("🎉 সফলভাবে পাবলিশ করা হয়েছে!")
+                    st.success("🎉 Video Published Successfully!")
                     st.rerun()
