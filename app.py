@@ -5,11 +5,12 @@ import os
 import sqlite3
 from datetime import datetime
 import streamlit.components.v1 as components
+import base64
 
 # ১. পেজ কনফিগারেশন
 st.set_page_config(page_title="BT AI Book — Verified Network", layout="wide", initial_sidebar_state="expanded")
 
-# মেটা ট্যাগ ও মনিটাইজেশন স্ক্রিপ্ট বসানো
+# মেটা ট্যাগ ও মনিটাইজেশন স্ক্রিপ্ট
 components.html(
     """
     <meta name="msvalidate.01" content="e776b8ce73ea3dcc07551e8a021a0907">
@@ -64,17 +65,42 @@ def init_db():
 
 init_db()
 
-# ৩. হেল্পার ফাংশন (গোল সুন্দর ব্লু-টিক সহ)
+# ৩. হেল্পার ফাংশন (গোল সুন্দর প্রোফাইল পিকচার ও ব্লু-টিক সহ)
 def format_value(value):
     if value >= 1000000: return f"{value/1000000:.1f}M"
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
-def render_blue_tick(name, is_verified=1):
+def get_image_base64(img_path):
+    """ছবিকে HTML এ দেখানোর জন্য Base64 এ কনভার্ট করার ফাংশন"""
+    if img_path and os.path.exists(img_path):
+        with open(img_path, "rb") as image_file:
+            encoded = base64.b64encode(image_file.read()).decode()
+            return f"data:image/jpeg;base64,{encoded}"
+    # ডিফল্ট প্রোফাইল আইকন (যদি ছবি না থাকে)
+    return "https://www.w3schools.com/howto/img_avatar.png"
+
+def render_user_header(name, pic_path=None, is_verified=1, video_type="LONG"):
+    """প্রোফাইল পিকচার + ইউজারনেম + ভেরিফাইড ব্যাজ লেআউট"""
+    img_src = get_image_base64(pic_path)
+    
+    blue_tick_html = ""
     if is_verified:
-        # প্রফেশনাল গোল শেপের নীল টিক চিহ্ন CSS
-        return f'''{name} <span style="background-color:#1877F2; color:white; border-radius:50%; padding:2px 7px; font-size:12px; font-weight:bold; display:inline-block; vertical-align:middle; line-height:1;" title="Verified Creator">✓</span>'''
-    return name
+        blue_tick_html = '''<span style="background-color:#1877F2; color:white; border-radius:50%; width:16px; height:16px; font-size:10px; font-weight:bold; display:inline-flex; align-items:center; justify-content:center; margin-left:4px;" title="Verified Creator">✓</span>'''
+    
+    header_html = f'''
+    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <img src="{img_src}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #1877F2; margin-right: 10px;">
+        <div>
+            <div style="display: flex; align-items: center; font-weight: bold; font-size: 16px;">
+                <span>{name}</span>
+                {blue_tick_html}
+                <span style="color: #65676B; font-weight: normal; font-size: 13px; margin-left: 8px;">• 🎬 {video_type.upper()}</span>
+            </div>
+        </div>
+    </div>
+    '''
+    return header_html
 
 def show_auto_moving_banner():
     ad_html = f"""
@@ -175,8 +201,7 @@ else:
     if st.session_state.pic and os.path.exists(st.session_state.pic):
         st.sidebar.image(st.session_state.pic, width=90)
     
-    user_with_tick = render_blue_tick(st.session_state.user, st.session_state.is_verified)
-    st.sidebar.markdown(f"স্বাগতম, **{user_with_tick}**", unsafe_allow_html=True)
+    st.sidebar.markdown(f"স্বাগতম, **{st.session_state.user}**", unsafe_allow_html=True)
     if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.session_state.pic = None
@@ -201,17 +226,19 @@ if tab == "🌍 World Feed":
         for index, v in enumerate(data):
             v_id = str(v['id'])
             v_type = v.get("video_type", "long")
+            uploader_name = v.get("uploader_name", "Unknown User")
+            uploader_pic = v.get("uploader_pic", None)
             
             st.markdown('<div class="long-video-card">', unsafe_allow_html=True)
             
-            uploader_name = v.get("uploader_name", "Unknown User")
-            uploader_rendered = render_blue_tick(uploader_name, 1)
+            # প্রোফাইল পিকচার + ইউজারনেম + ভেরিফাইড টিক রেন্ডার
+            user_header = render_user_header(uploader_name, uploader_pic, is_verified=1, video_type=v_type)
+            st.markdown(user_header, unsafe_allow_html=True)
             
-            st.markdown(f"👤 **{uploader_rendered}** • *🎬 {v_type.upper()}*", unsafe_allow_html=True)
             if v.get("title"):
                 st.markdown(f"### {v.get('title')}")
             
-            # ভিডিও প্লেয়ার
+            # ভিডিও প্লেয়ার
             if os.path.exists(v['video_url']):
                 st.video(v['video_url'])
             else:
@@ -262,13 +289,23 @@ elif tab == "👤 My Profile":
         total_likes = sum([v.get("likes", 0) for v in my_videos])
         total_views = sum([v.get("views", 0) for v in my_videos])
         
-        user_blue_tick = render_blue_tick(st.session_state.user, st.session_state.is_verified)
+        # প্রোফাইল ছবি
+        my_pic_src = get_image_base64(st.session_state.pic)
         
-        # প্রোফাইল ও উন্মুক্ত মনিটাইজেশন ইনফো
+        # প্রোফাইল কার্ড
         st.markdown(f'''
             <div class="profile-card">
-                <h2>{user_blue_tick}</h2>
-                <p style="color:#1877F2; font-weight:bold;">🛡️ Official Global Verified Creator</p>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <img src="{my_pic_src}" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #1877F2;">
+                    <div>
+                        <h2 style="margin: 0; display: flex; align-items: center;">
+                            {st.session_state.user} 
+                            <span style="background-color:#1877F2; color:white; border-radius:50%; width:20px; height:20px; font-size:12px; font-weight:bold; display:inline-flex; align-items:center; justify-content:center; margin-left:6px;">✓</span>
+                        </h2>
+                        <p style="color:#1877F2; font-weight:bold; margin: 2px 0;">🛡️ Official Global Verified Creator</p>
+                    </div>
+                </div>
+                <hr style="margin: 15px 0;">
                 <p>📹 আপলোড: <b>{len(my_videos)}</b>টি | ❤️ লাইক: <b>{format_value(total_likes)}</b> | 👁️ ভিউ: <b>{format_value(total_views)}</b></p>
             </div>
             
