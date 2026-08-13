@@ -9,7 +9,7 @@ import streamlit.components.v1 as components
 # ১. পেজ কনফিগারেশন
 st.set_page_config(page_title="BT AI Book — Verified Network", layout="wide", initial_sidebar_state="expanded")
 
-# মেটা ট্যাগ বসানোর সঠিক উপায়
+# মেটা ট্যাগ ও মনিটাইজেশন স্ক্রিপ্ট বসানো
 components.html(
     """
     <meta name="msvalidate.01" content="e776b8ce73ea3dcc07551e8a021a0907">
@@ -64,7 +64,7 @@ def init_db():
 
 init_db()
 
-# ৩. হেল্পার ফাংশন
+# ৩. হেল্পার ফাংশন (গোল সুন্দর ব্লু-টিক সহ)
 def format_value(value):
     if value >= 1000000: return f"{value/1000000:.1f}M"
     if value >= 1000: return f"{value/1000:.1f}K"
@@ -72,18 +72,20 @@ def format_value(value):
 
 def render_blue_tick(name, is_verified=1):
     if is_verified:
-        return f'''{name} <span style="background-color:#1877F2; color:white; border-radius:50%; padding: 2px 6px; font-size:11px;" title="Verified Creator">✓</span>'''
+        # প্রফেশনাল গোল শেপের নীল টিক চিহ্ন CSS
+        return f'''{name} <span style="background-color:#1877F2; color:white; border-radius:50%; padding:2px 7px; font-size:12px; font-weight:bold; display:inline-block; vertical-align:middle; line-height:1;" title="Verified Creator">✓</span>'''
     return name
 
 def show_auto_moving_banner():
     ad_html = f"""
-    <div style="text-align:center; margin: 10px 0;">
+    <div style="text-align:center; margin: 15px 0;">
         <a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">
-            <div style="background: linear-gradient(90deg, #00c853, #000); 
-                        color: #fff; padding: 12px; border-radius: 10px; 
-                        border: 2px solid #00c853; font-family: sans-serif;">
-                <span style="font-size: 16px; font-weight: bold;">⚡ PREMIUM REWARD ACTIVE ⚡</span><br>
-                <span style="font-size: 11px;">Click to Claim Your Diamond Bonus!</span>
+            <div style="background: linear-gradient(90deg, #1877F2, #00c853); 
+                        color: #fff; padding: 14px; border-radius: 12px; 
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+                        border: 2px solid #ffffff; font-family: sans-serif;">
+                <span style="font-size: 16px; font-weight: bold;">⚡ GLOBAL AUTOMATIC MONETIZATION ACTIVE ⚡</span><br>
+                <span style="font-size: 12px;">Click to Boost Earnings & Claim Reward Bonus!</span>
             </div>
         </a>
     </div>
@@ -108,6 +110,14 @@ st.markdown("""
         padding: 20px;
         margin-bottom: 20px;
         border: 1px solid #dee2e6;
+    }
+    .monetization-box {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+        color: white;
+        padding: 15px;
+        border-radius: 12px;
+        margin-top: 15px;
+        margin-bottom: 15px;
     }
     .btn-direct { display: block; width: 100%; padding: 10px; margin: 6px 0; color: white !important; text-align: center; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 14px; }
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
@@ -165,7 +175,8 @@ else:
     if st.session_state.pic and os.path.exists(st.session_state.pic):
         st.sidebar.image(st.session_state.pic, width=90)
     
-    st.sidebar.write(f"স্বাগতম, **{st.session_state.user}** ✓")
+    user_with_tick = render_blue_tick(st.session_state.user, st.session_state.is_verified)
+    st.sidebar.markdown(f"স্বাগতম, **{user_with_tick}**", unsafe_allow_html=True)
     if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.session_state.pic = None
@@ -194,8 +205,9 @@ if tab == "🌍 World Feed":
             st.markdown('<div class="long-video-card">', unsafe_allow_html=True)
             
             uploader_name = v.get("uploader_name", "Unknown User")
+            uploader_rendered = render_blue_tick(uploader_name, 1)
             
-            st.write(f"👤 **{uploader_name}** ✓  •  *🎬 {v_type.upper()}*")
+            st.markdown(f"👤 **{uploader_rendered}** • *🎬 {v_type.upper()}*", unsafe_allow_html=True)
             if v.get("title"):
                 st.markdown(f"### {v.get('title')}")
             
@@ -214,8 +226,8 @@ if tab == "🌍 World Feed":
 
             st.write(f"👁️ **{format_value(new_views)}** Views | ❤️ **{format_value(v.get('likes', 0))}** Likes")
             st.markdown(f'''
-                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-1">💰 Claim Reward 1</a>
-                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-2">💎 Premium Bonus 2</a>
+                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-1">💰 Claim Monetization Reward</a>
+                <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-2">💎 Premium Global Bonus</a>
             ''', unsafe_allow_html=True)
             
             c1, c2 = st.columns(2)
@@ -236,7 +248,7 @@ if tab == "🌍 World Feed":
     finally:
         conn.close()
 
-# ৮. মাই প্রোফাইল
+# ৮. মাই প্রোফাইল ও গ্লোবাল মনিটাইজেশন
 elif tab == "👤 My Profile":
     if not st.session_state.user:
         st.warning("আপনার প্রোফাইল দেখতে প্রথমে লগইন করুন!")
@@ -250,11 +262,21 @@ elif tab == "👤 My Profile":
         total_likes = sum([v.get("likes", 0) for v in my_videos])
         total_views = sum([v.get("views", 0) for v in my_videos])
         
+        user_blue_tick = render_blue_tick(st.session_state.user, st.session_state.is_verified)
+        
+        # প্রোফাইল ও উন্মুক্ত মনিটাইজেশন ইনফো
         st.markdown(f'''
             <div class="profile-card">
-                <h2>{st.session_state.user} ✓</h2>
-                <p style="color:#1877F2; font-weight:bold;">🛡️ Official Verified Creator</p>
+                <h2>{user_blue_tick}</h2>
+                <p style="color:#1877F2; font-weight:bold;">🛡️ Official Global Verified Creator</p>
                 <p>📹 আপলোড: <b>{len(my_videos)}</b>টি | ❤️ লাইক: <b>{format_value(total_likes)}</b> | 👁️ ভিউ: <b>{format_value(total_views)}</b></p>
+            </div>
+            
+            <div class="monetization-box">
+                <h3>🌐 Global Auto-Monetization Program</h3>
+                <p>✅ <b>Status: Enabled for Everyone (উন্মুক্ত মনিটাইজেশন)</b></p>
+                <p>💵 আনুমানিক আয় (Est. Revenue): <b>${(total_views * 0.002) + (total_likes * 0.005):.2f} USD</b></p>
+                <small>* সারা বিশ্বের যেকোনো প্রান্ত থেকে দেখা ভিউ এবং লাইকের জন্য অটোমেটিক ইনকাম যোগ হচ্ছে।</small>
             </div>
         ''', unsafe_allow_html=True)
         
