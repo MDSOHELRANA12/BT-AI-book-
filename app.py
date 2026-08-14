@@ -5,8 +5,7 @@ import random
 import sqlite3
 import uuid
 
-from google import genai
-from openai import OpenAI
+import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -28,25 +27,22 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# 2. API Setup (Streamlit Secrets থেকে Key পড়ে নেওয়া)
-OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
-GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY", ""))
 
-# OpenAI Client Setup
-openai_client = None
-if OPENAI_API_KEY:
+# Free AI Assistant Function (No API Key Required)
+def ask_free_ai(prompt_text):
+    """
+    বিনামূল্যে AI উত্তর তৈরি করার জন্য প্রস্তুত ফ্রী এপিআই সার্ভিস।
+    """
     try:
-        openai_client = OpenAI(api_key=OPENAI_API_KEY)
-    except Exception:
-        openai_client = None
+        url = f"https://text.pollinations.ai/{requests.utils.quote(prompt_text)}"
+        response = requests.get(url, timeout=15)
+        if response.status_code == 200:
+            return response.text
+        else:
+            return "দুঃখিত, এআই সার্ভার সাড়া দিচ্ছে না। অনুগ্রহ করে একটু পর চেষ্টা করুন।"
+    except Exception as e:
+        return f"নেটওয়ার্ক জনিত সমস্যা হয়েছে: {e}"
 
-# Gemini Client Setup
-gemini_client = None
-if GEMINI_API_KEY:
-    try:
-        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-    except Exception:
-        gemini_client = None
 
 # 3. Local Storage and Database Setup
 DB_FILE = "local_storage.db"
@@ -82,12 +78,6 @@ def init_db():
             created_at TEXT
         )
     """)
-
-    for col in ["full_name", "nid_number", "address"]:
-        try:
-            cursor.execute(f"ALTER TABLE users ADD COLUMN {col} TEXT")
-        except Exception:
-            pass
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS videos (
@@ -265,7 +255,7 @@ def render_comments_section(post_id):
         conn.close()
 
 
-# 5. Custom Styling
+# Custom Styling
 st.markdown(
     """
     <style>
@@ -317,7 +307,7 @@ st.markdown(
 
 st.title("BD AI book — Verified Social Network")
 
-# 6. Session State Initialization
+# Session State Initialization
 if "user" not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -326,7 +316,7 @@ if "user" not in st.session_state:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "🌍 World Feed"
 
-# 7. Sidebar Authentication
+# Sidebar Authentication
 st.sidebar.header("📸 Authentication")
 
 if not st.session_state.user:
@@ -377,12 +367,11 @@ else:
         st.session_state.is_verified = 1
         st.rerun()
 
-# Navigation Tabs (Gemini Assistant যুক্ত করা হলো)
+# Navigation Tabs
 nav_tabs = [
     "🌍 World Feed",
     "📱 Scrolle Shorts Feed",
-    "✨ Google Gemini Assistant",
-    "🤖 ChatGPT AI Assistant",
+    "🤖 Free AI Assistant (No API Key)",
     "👤 My Profile & Earnings",
     "📤 Create Post / Upload",
 ]
@@ -568,72 +557,32 @@ elif tab == "📱 Scrolle Shorts Feed":
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
                     st.toast("Followed Creator!")
 
-# ✨ Google Gemini Assistant Section (প্রথমে দেওয়া কোডের সাথে মিল করে যুক্ত)
-elif tab == "✨ Google Gemini Assistant":
-    st.subheader("✨ Google Gemini Assistant")
-    st.caption("বাংলা ও ইংরেজি সহ যেকোনো প্রশ্ন করুন!")
+# 🤖 Free AI Assistant (No API Key Needed)
+elif tab == "🤖 Free AI Assistant (No API Key)":
+    st.subheader("🤖 Free Smart AI Assistant")
+    st.caption("কোনো API Key ছাড়াই এটি সম্পূর্ণ বিনামূল্যে প্রশ্ন-উত্তর দিতে পারবে!")
 
-    if not GEMINI_API_KEY:
-        st.error("Gemini API Key সেট করা হয়নি! Streamlit Secrets-এ GEMINI_API_KEY সেট করুন।")
-    else:
-        user_input = st.text_input("এখানে আপনার প্রশ্ন লিখুন...", key="gemini_input")
-        
-        if user_input:
-            with st.spinner("উত্তর তৈরি হচ্ছে..."):
-                try:
-                    if gemini_client:
-                        response = gemini_client.models.generate_content(
-                            model="gemini-2.5-flash",
-                            contents=user_input,
-                        )
-                        st.write(response.text)
-                    else:
-                        st.error("Gemini ক্লায়েন্ট আরম্ভ করতে সমস্যা হয়েছে। API Key টি সঠিকভাবে পরীক্ষা করুন।")
-                except Exception as e:
-                    st.error(f"Error: {e}")
+    if "free_chat_history" not in st.session_state:
+        st.session_state.free_chat_history = []
 
-# 🤖 ChatGPT AI Assistant Section
-elif tab == "🤖 ChatGPT AI Assistant":
-    st.subheader("🤖 ChatGPT (OpenAI) AI Assistant")
-    st.caption("বাংলা ও ইংরেজি সহ যেকোনো প্রশ্ন করুন!")
-
-    if "openai_chat_messages" not in st.session_state:
-        st.session_state.openai_chat_messages = []
-
-    for msg in st.session_state.openai_chat_messages:
+    for msg in st.session_state.free_chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if prompt := st.chat_input("এখানে আপনার প্রশ্ন লিখুন..."):
-        st.session_state.openai_chat_messages.append(
-            {"role": "user", "content": prompt}
+    if user_prompt := st.chat_input("এখানে আপনার যেকোনো প্রশ্ন লিখুন..."):
+        st.session_state.free_chat_history.append(
+            {"role": "user", "content": user_prompt}
         )
         with st.chat_message("user"):
-            st.markdown(prompt)
+            st.markdown(user_prompt)
 
         with st.chat_message("assistant"):
-            if openai_client:
-                with st.spinner("ChatGPT উত্তর তৈরি করছে..."):
-                    try:
-                        response = openai_client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {
-                                    "role": m["role"],
-                                    "content": m["content"],
-                                }
-                                for m in st.session_state.openai_chat_messages
-                            ],
-                        )
-                        reply = response.choices[0].message.content
-                        st.markdown(reply)
-                        st.session_state.openai_chat_messages.append(
-                            {"role": "assistant", "content": reply}
-                        )
-                    except Exception as err:
-                        st.error(f"OpenAI এরর: {err}")
-            else:
-                st.error("OpenAI API Key সেট করা হয়নি! অনুগ্রহ করে Streamlit Secrets-এ OPENAI_API_KEY সেট করুন।")
+            with st.spinner("AI চিন্তাভাবনা করে উত্তর তৈরি করছে..."):
+                ai_reply = ask_free_ai(user_prompt)
+                st.markdown(ai_reply)
+                st.session_state.free_chat_history.append(
+                    {"role": "assistant", "content": ai_reply}
+                )
 
 # 9. Profile Section
 elif tab == "👤 My Profile & Earnings":
