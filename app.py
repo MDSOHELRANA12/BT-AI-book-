@@ -7,7 +7,7 @@ import base64
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# 1. Page Configuration (Company Name Updated to BD AI book)
+# 1. Page Configuration
 st.set_page_config(page_title="BD AI book — Verified Social Network", layout="wide", initial_sidebar_state="expanded")
 
 # Meta Tags & Monetization Scripts
@@ -53,7 +53,6 @@ def init_db():
         )
     ''')
     
-    # Auto-Migration for existing databases
     for col in ["full_name", "nid_number", "address"]:
         try:
             cursor.execute(f"ALTER TABLE users ADD COLUMN {col} TEXT")
@@ -138,7 +137,7 @@ def show_auto_moving_banner():
     """
     components.html(ad_html, height=95)
 
-# 4. Custom Styling (Dark UI Theme like Screenshots)
+# 4. Custom Styling (Dark UI Theme)
 st.markdown("""
     <style>
     .stApp { background-color: #121212; color: #e4e6eb; }
@@ -182,10 +181,36 @@ st.markdown("""
     .btn-direct { display: block; width: 100%; padding: 10px; margin: 6px 0; color: white !important; text-align: center; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 14px; }
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
     .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
+
+    /* Shorts Full-screen Scroll Layout */
+    .shorts-container {
+        height: 80vh;
+        overflow-y: scroll;
+        scroll-snap-type: y mandatory;
+        border-radius: 16px;
+        max-width: 450px;
+        margin: 0 auto;
+        background: #000;
+    }
+    .short-card {
+        scroll-snap-align: start;
+        height: 80vh;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: #000;
+        border-bottom: 2px solid #222;
+    }
+    .short-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# Updated Title
 st.title("BD AI book — Verified Social Network")
 
 # 5. Session State
@@ -242,14 +267,15 @@ else:
         st.session_state.is_verified = 1
         st.rerun()
 
-tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "👤 My Profile & Earnings", "📤 Create Post / Upload"])
+# --- Navigation tab selection updated to include Scrolle Shorts Feed ---
+tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📱 Scrolle Shorts Feed", "👤 My Profile & Earnings", "📤 Create Post / Upload"])
 
 # 7. World Feed
 if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # --- Top Scrolle (Shorts Video) Section with Poster/Thumbnail Display ---
+    # --- Top Scrolle (Shorts Video) Preview Section ---
     try:
         cursor.execute("SELECT * FROM videos WHERE video_type = 'short'")
         short_videos = [dict(r) for r in cursor.fetchall()]
@@ -261,7 +287,6 @@ if tab == "🌍 World Feed":
                 with cols[i]:
                     st.markdown(f"**{sv.get('uploader_name', 'User')}** ✔️")
                     if os.path.exists(sv['video_url']):
-                        # Displays video preview/poster clearly as image thumbnails
                         st.video(sv['video_url'], format="video/mp4")
                     st.caption(f"👁️ {format_value(sv.get('views', 0))} views")
             st.divider()
@@ -291,15 +316,12 @@ if tab == "🌍 World Feed":
             st.markdown('<div class="feed-card">', unsafe_allow_html=True)
             show_verified_profile(uploader_name, profile_pic_path=uploader_pic, subtitle=f"Posted {created_at}")
             
-            # Text Post Content
             if "content" in item and item["content"]:
                 st.markdown(f"### {item['content']}")
                 
-            # Image Post Content
             if "image_url" in item and item["image_url"] and os.path.exists(item["image_url"]):
                 st.image(item["image_url"], use_container_width=True)
                 
-            # Video Content
             if "video_url" in item and os.path.exists(item['video_url']):
                 if item.get("title"):
                     st.markdown(f"#### {item.get('title')}")
@@ -333,6 +355,43 @@ if tab == "🌍 World Feed":
         st.error(f"Feed Error: {e}")
     finally:
         conn.close()
+
+# 📱 --- NEW: Scrolle Shorts Full Feed (TikTok/Shorts Style Vertical Scroll) ---
+elif tab == "📱 Scrolle Shorts Feed":
+    st.subheader("📱 Scrolle Shorts")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM videos WHERE video_type = 'short' ORDER BY created_at DESC")
+    short_vids = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+
+    if not short_vids:
+        st.info("কোনো শর্টস ভিডিও পাওয়া যায়নি। নতুন শর্টস আপলোড করুন!")
+    else:
+        # Loop through short videos and present vertical player cards
+        for idx, sv in enumerate(short_vids):
+            st.markdown("---")
+            col_vid, col_actions = st.columns([3, 1])
+            with col_vid:
+                show_verified_profile(sv.get("uploader_name", "User"), profile_pic_path=sv.get("uploader_pic"), subtitle="Scrolle Creator")
+                st.markdown(f"**{sv.get('title', 'Short Video')}**")
+                if os.path.exists(sv['video_url']):
+                    st.video(sv['video_url'], format="video/mp4")
+            
+            with col_actions:
+                st.write(" ")
+                st.write(" ")
+                if st.button(f"❤️ {format_value(sv.get('likes', 0))}", key=f"s_like_{sv['id']}"):
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE videos SET likes = likes + 1 WHERE id = ?", (sv['id'],))
+                    conn.commit()
+                    conn.close()
+                    st.rerun()
+                st.caption(f"👁️ {format_value(sv.get('views', 0))}")
+                if st.button("➕ Follow", key=f"s_fol_{sv['id']}"):
+                    st.toast("Followed!")
+                st.markdown(f'<a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">💰 Earn</a>', unsafe_allow_html=True)
 
 # 8. Profile Section
 elif tab == "👤 My Profile & Earnings":
