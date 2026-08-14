@@ -1,8 +1,5 @@
 streamlit
 supabase
-moviepy
-datetime
-streamlit
-supabase
+google-generativeai
 moviepy==1.0.3
 decorator==4.4.2
