@@ -764,17 +764,17 @@ elif tab == "📤 Create Post / Upload":
         cursor.execute("SELECT COUNT(*) FROM posts WHERE uploader_name = ? AND SUBSTR(created_at, 1, 10) = ?", (st.session_state.user, today_date))
         today_posts_count = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM videos WHERE uploader_name = ? AND created_at = ? AND video_type = 'short'", (st.session_state.user, today_date))
+        cursor.execute("SELECT COUNT(*) FROM videos WHERE uploader_name = ? AND SUBSTR(created_at, 1, 10) = ? AND video_type = 'short'", (st.session_state.user, today_date))
         today_shorts_count = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM videos WHERE uploader_name = ? AND created_at = ? AND video_type = 'long'", (st.session_state.user, today_date))
+        cursor.execute("SELECT COUNT(*) FROM videos WHERE uploader_name = ? AND SUBSTR(created_at, 1, 10) = ? AND video_type = 'long'", (st.session_state.user, today_date))
         today_long_count = cursor.fetchone()[0]
         conn.close()
 
         st.info(f"📊 **আজকের লিমিট স্ট্যাটাস:** ফটো/টেক্সট পোস্ট: **{today_posts_count}/১০টি** | শর্টস ভিডিও: **{today_shorts_count}/১টি** | লং ভিডিও: **{today_long_count}/১টি**")
 
         post_type = st.radio(
-            "কী শেয়ার করতে চান সিলেক্ট করুন:",
+            "কী শেয়ার করতে চান সিলেক্ট করুন:",
             ["📝 Photo & Text Post (দৈনিক ১০টি)", "🎥 Video / Scrolle Shorts (দৈনিক ১টি)"],
         )
 
@@ -786,7 +786,7 @@ elif tab == "📤 Create Post / Upload":
 
             if st.button("🚀 Publish Post"):
                 if today_posts_count >= 10:
-                    st.error("🛑 আপনার আজকের ১০টি পোস্ট করার লিমিট শেষ হয়ে গেছে! আবার আগামীকাল পোস্ট করতে পারবেন।")
+                    st.error("🛑 আপনার আজকের ১০টি পোস্ট করার লিমিট শেষ হয়ে গেছে! আবার আগামীকাল পোস্ট করতে পারবেন।")
                 elif not post_text and not img_file:
                     st.warning("পোস্টে কিছু লিখুন অথবা ছবি যুক্ত করুন!")
                 else:
@@ -803,7 +803,7 @@ elif tab == "📤 Create Post / Upload":
                                 is_safe = True
 
                     if not is_safe:
-                        st.error("❌ এই পোস্টে সেক্সুয়াল বা খারাপ কোনো বিষয়বস্তু শনাক্ত হয়েছে! আমাদের নিয়মানুযায়ী এই পোস্টটি পাবলিশ হতে পারবে না।")
+                        st.error("❌ এই পোস্টে সেক্সুয়াল বা খারাপ কোনো বিষয়বস্তু শনাক্ত হয়েছে! আমাদের নিয়মানুযায়ী এই পোস্টটি পাবলিশ হতে পারবে না।")
                     else:
                         img_path = None
                         if img_file:
@@ -831,7 +831,7 @@ elif tab == "📤 Create Post / Upload":
                         )
                         conn.commit()
                         conn.close()
-                        st.success("🎉 আপনার চমৎকার পোস্টটি নিরাপদে পাবলিশ হয়েছে!")
+                        st.success("🎉 আপনার চমৎকার পোস্টটি নিরাপদে পাবলিশ হয়েছে!")
                         st.rerun()
 
         # 2️⃣ ভিডিও আপলোড সেকশন (লং ও শর্ট ভিডিও লিমিট + সেফটি চেক)
@@ -842,20 +842,21 @@ elif tab == "📤 Create Post / Upload":
             file = st.file_uploader("Select MP4 Video File", type=["mp4"])
 
             if st.button("🚀 Publish Video"):
-                is_short = "Short" in v_type
-
-                if is_short and today_shorts_count >= 1:
-                    st.error("🛑 আপনি আজকে ১টি শর্ট ভিডিও আপলোড করে ফেলেছেন! দিনে ১টির বেশি শর্ট ভিডিও দেওয়া যাবে না।")
-                elif not is_short and today_long_count >= 1:
-                    st.error("🛑 আপনি আজকে ১টি লং ভিডিও আপলোড করে ফেলেছেন! দিনে ১টির বেশি লং ভিডিও দেওয়া যাবে না।")
-                elif not file:
-                    st.warning("একটি MP4 ভিডিও সিলেক্ট করুন!")
+                is_short = "short" if "Short" in v_type else "long"
+                
+                # সীমা চেক
+                if is_short == "short" and today_shorts_count >= 1:
+                    st.error("🛑 আপনি আজ ইতিমধ্যেই ১টি শর্টস ভিডিও আপলোড করেছেন! আগামী কাল আবার ট্রাই করুন।")
+                elif is_short == "long" and today_long_count >= 1:
+                    st.error("🛑 আপনি আজ ইতিমধ্যেই ১টি লং ভিডিও আপলোড করেছেন! আগামী কাল আবার ট্রাই করুন।")
+                elif not file or not v_title:
+                    st.warning("ভিডিও টাইটেল এবং MP4 ফাইল দুটোই নির্বাচন করুন!")
                 else:
-                    # 🛡️ AI সেফটি ফিল্টার (ভিডিও টাইটেল চেক)
+                    # AI Title Content Filter Check
                     is_safe = True
                     if ai_model and v_title:
-                        with st.spinner("🔍 AI ভিডিওটি পরীক্ষা করে দেখছি..."):
-                            check_prompt = f"Analyze if this title promotes sexual, adult, explicit, or harmful content. Reply ONLY 'SAFE' or 'UNSAFE': {v_title}"
+                        with st.spinner("🔍 AI ভিডিওর টাইটেল পরীক্ষা করছে..."):
+                            check_prompt = f"Analyze if this video title contains adult or vulgar terms. Reply ONLY 'SAFE' or 'UNSAFE': {v_title}"
                             try:
                                 res = ai_model.generate_content(check_prompt)
                                 if "UNSAFE" in res.text.upper():
@@ -864,16 +865,13 @@ elif tab == "📤 Create Post / Upload":
                                 is_safe = True
 
                     if not is_safe:
-                        st.error("❌ এই ভিডিওতে সেক্সুয়াল বা আপত্তিকর বিষয়বস্তু শনাক্ত হয়েছে! ভিডিওটি আপলোড নেওয়া হয়নি।")
+                        st.error("❌ ভিডিওর টাইটেলে আপত্তিজনক কথা পাওয়া গেছে!")
                     else:
-                        v_id = str(uuid.uuid4())
-                        v_name = os.path.join(VIDEO_DIR, f"v_{v_id}.mp4")
+                        v_path = os.path.join(VIDEO_DIR, f"v_{uuid.uuid4()}.mp4")
+                        with open(v_path, "wb") as f:
+                            f.write(file.getvalue())
 
-                        with open(v_name, "wb") as f_dst:
-                            f_dst.write(file.getvalue())
-
-                        video_kind = "short" if is_short else "long"
-
+                        today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
                         conn = get_db_connection()
                         cursor = conn.cursor()
                         cursor.execute(
@@ -882,19 +880,19 @@ elif tab == "📤 Create Post / Upload":
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             """,
                             (
-                                v_id,
-                                v_name,
+                                str(uuid.uuid4()),
+                                v_path,
                                 st.session_state.user,
                                 st.session_state.pic,
-                                video_kind,
-                                v_title if v_title else "Untitled Video",
+                                is_short,
+                                v_title,
                                 random.randint(10, 50),
                                 1,
-                                random.randint(5, 30),
-                                today_date,
+                                random.randint(1, 10),
+                                today_str,
                             ),
                         )
                         conn.commit()
                         conn.close()
-                        st.success("🎉 ভিডিওটি AI পরীক্ষা সম্পন্ন করে সফলভাবে পাবলিশ করা হয়েছে!")
+                        st.success("🎉 আপনার Full HD ভিডিওটি সফলভাবে আপলোড হয়েছে!")
                         st.rerun()
