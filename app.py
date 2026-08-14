@@ -1,14 +1,19 @@
-import streamlit as st
-import uuid
-import random
-import os
-import sqlite3
 import base64
 from datetime import datetime
+import os
+import random
+import sqlite3
+import uuid
+import google.generativeai as genai
+import streamlit as st
 import streamlit.components.v1 as components
 
 # 1. Page Configuration
-st.set_page_config(page_title="BD AI book — Verified Social Network", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="BD AI book — Verified Social Network",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 # Meta Tags & Monetization Scripts
 components.html(
@@ -21,7 +26,15 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# 2. Local Storage and Database Setup
+# 2. Gemini AI Key & Setup
+GEMINI_API_KEY = "AIzaSyCpq007fwUU7LfqMVTQBl6WLbFI1yiZZ_g"
+try:
+    genai.configure(api_key=GEMINI_API_KEY)
+    ai_model = genai.GenerativeModel("gemini-1.5-flash")
+except Exception as e:
+    ai_model = None
+
+# 3. Local Storage and Database Setup
 DB_FILE = "local_storage.db"
 VIDEO_DIR = "stored_videos"
 IMAGE_DIR = "stored_images"
@@ -31,16 +44,19 @@ for folder in [VIDEO_DIR, IMAGE_DIR, PROFILE_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
+
 def get_db_connection():
-    # এখানে ভুল সংশোধন করা হয়েছে: check_same_thread=False
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
+
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('''
+
+    # Users Table
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
             full_name TEXT,
@@ -52,15 +68,16 @@ def init_db():
             address TEXT,
             created_at TEXT
         )
-    ''')
-    
+    """)
+
     for col in ["full_name", "nid_number", "address"]:
         try:
             cursor.execute(f"ALTER TABLE users ADD COLUMN {col} TEXT")
         except Exception:
             pass
 
-    cursor.execute('''
+    # Videos Table
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS videos (
             id TEXT PRIMARY KEY,
             video_url TEXT,
@@ -73,9 +90,10 @@ def init_db():
             followers INTEGER DEFAULT 0,
             created_at TEXT
         )
-    ''')
-    
-    cursor.execute('''
+    """)
+
+    # Posts Table
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS posts (
             id TEXT PRIMARY KEY,
             uploader_name TEXT,
@@ -85,28 +103,51 @@ def init_db():
             likes INTEGER DEFAULT 0,
             created_at TEXT
         )
-    ''')
+    """)
+
+    # Comments & Gifts Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS comments (
+            id TEXT PRIMARY KEY,
+            post_id TEXT,
+            uploader_name TEXT,
+            comment_text TEXT,
+            gift_type TEXT,
+            created_at TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 
+
 init_db()
 
-# 3. Helper Functions
+
+# 4. Helper Functions
 def format_value(value):
-    if value >= 1000000: return f"{value/1000000:.1f}M"
-    if value >= 1000: return f"{value/1000:.1f}K"
+    if value >= 1000000:
+        return f"{value/1000000:.1f}M"
+    if value >= 1000:
+        return f"{value/1000:.1f}K"
     return str(value)
+
 
 def get_image_base64(image_path):
     if image_path and os.path.exists(image_path):
         try:
             with open(image_path, "rb") as img_file:
-                return base64.b64encode(img_file.read()).decode('utf-8')
+                return base64.b64encode(img_file.read()).decode("utf-8")
         except Exception:
             return None
     return None
 
-def show_verified_profile(display_name, profile_pic_path=None, subtitle="Official Global Verified Creator"):
+
+def show_verified_profile(
+    display_name,
+    profile_pic_path=None,
+    subtitle="Official Global Verified Creator",
+):
     b64_img = get_image_base64(profile_pic_path)
     if b64_img:
         img_html = f'<img src="data:image/jpeg;base64,{b64_img}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #00c853;">'
@@ -125,6 +166,7 @@ def show_verified_profile(display_name, profile_pic_path=None, subtitle="Officia
 </div>"""
     st.markdown(html_code, unsafe_allow_html=True)
 
+
 def show_auto_moving_banner():
     ad_html = f"""
     <div style="text-align:center; margin: 15px 0;">
@@ -138,8 +180,83 @@ def show_auto_moving_banner():
     """
     components.html(ad_html, height=95)
 
-# 4. Custom Styling (Dark UI & Full TikTok Player Styling)
-st.markdown("""
+
+def render_comments_section(post_id):
+    """Facebook Style Comment & Gift Component"""
+    with st.expander("💬 Comments & Gifts (কমেন্ট ও গিফট দেখুন)"):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC",
+            (post_id,),
+        )
+        all_comments = [dict(r) for r in cursor.fetchall()]
+
+        if all_comments:
+            for c in all_comments:
+                gift_badge = (
+                    f" <span style='background:#3a3b3c; padding:2px 6px; border-radius:6px;'>{c['gift_type']}</span>"
+                    if c.get("gift_type") and c.get("gift_type") != "None"
+                    else ""
+                )
+                st.markdown(
+                    f"**{c['uploader_name']}**{gift_badge} <small style=\"color:#888;\">({c['created_at']})</small>:<br>{c['comment_text']}",
+                    unsafe_allow_html=True,
+                )
+                st.markdown("---")
+        else:
+            st.caption("এখনো কোনো কমেন্ট করা হয়নি। প্রথম কমেন্টটি আপনি করুন!")
+
+        if st.session_state.user:
+            with st.form(key=f"c_form_{post_id}"):
+                c_input = st.text_input(
+                    "কমেন্ট লিখুন...", key=f"inp_{post_id}", placeholder="আপনার মতামত..."
+                )
+                gift_selected = st.selectbox(
+                    "🎁 গিফট সিলেক্ট করুন (ঐচ্ছিক)",
+                    [
+                        "None",
+                        "🎁 Gift Box (+10 pts)",
+                        "💎 Diamond (+50 pts)",
+                        "🌟 Star (+20 pts)",
+                        "🔥 Fire (+15 pts)",
+                    ],
+                    key=f"gft_{post_id}",
+                )
+                submit_btn = st.form_submit_button("পোস্ট করুন")
+
+                if submit_btn:
+                    if c_input.strip():
+                        now_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+                        cursor.execute(
+                            """
+                            INSERT INTO comments (id, post_id, uploader_name, comment_text, gift_type, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                str(uuid.uuid4()),
+                                post_id,
+                                st.session_state.user,
+                                c_input.strip(),
+                                gift_selected,
+                                now_time,
+                            ),
+                        )
+                        conn.commit()
+                        conn.close()
+                        st.toast("✅ কমেন্ট ও গিফট পোস্ট হয়েছে!")
+                        st.rerun()
+                    else:
+                        st.warning("কমেন্ট খালি রাখা যাবে না!")
+        else:
+            st.info("কমেন্ট বা গিফট পাঠাতে লগইন করুন।")
+        conn.close()
+
+
+# 5. Custom Styling
+st.markdown(
+    """
     <style>
     .stApp { background-color: #121212; color: #e4e6eb; }
     
@@ -182,61 +299,40 @@ st.markdown("""
     .btn-direct { display: block; width: 100%; padding: 10px; margin: 6px 0; color: white !important; text-align: center; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 14px; }
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
     .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
-
-    /* TikTok Full Feed Container Style */
-    .tiktok-container {
-        height: 85vh;
-        overflow-y: scroll;
-        scroll-snap-type: y mandatory;
-        border-radius: 16px;
-        max-width: 420px;
-        margin: 0 auto;
-        background: #000;
-        border: 2px solid #333;
-    }
-    .tiktok-card {
-        scroll-snap-align: start;
-        height: 85vh;
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        background: #000;
-        border-bottom: 2px solid #222;
-    }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
 st.title("BD AI book — Verified Social Network")
 
-# 5. Session State
-if 'user' not in st.session_state:
+# 6. Session State
+if "user" not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
     st.session_state.is_verified = 1
 
-if 'active_tab' not in st.session_state:
+if "active_tab" not in st.session_state:
     st.session_state.active_tab = "🌍 World Feed"
 
-# 6. Sidebar: Authentication
+# 7. Sidebar: Authentication
 st.sidebar.header("📸 Authentication")
 
 if not st.session_state.user:
     u_name = st.sidebar.text_input("Username")
     camera_photo = st.sidebar.camera_input("Take Face Scan", key="face_cam")
-    
+
     if u_name and camera_photo:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE username = ?", (u_name,))
         user_data = cursor.fetchone()
-        
+
         if user_data:
             if st.sidebar.button("🔓 Login with Face ID"):
                 st.session_state.user = u_name
-                st.session_state.pic = user_data['profile_pic']
-                st.session_state.is_verified = user_data['is_verified']
+                st.session_state.pic = user_data["profile_pic"]
+                st.session_state.is_verified = user_data["is_verified"]
                 conn.close()
                 st.rerun()
         else:
@@ -244,13 +340,16 @@ if not st.session_state.user:
                 fname = os.path.join(PROFILE_DIR, f"p_{uuid.uuid4()}.jpg")
                 with open(fname, "wb") as f:
                     f.write(camera_photo.getvalue())
-                
+
                 today_str = datetime.now().strftime("%Y-%m-%d")
-                cursor.execute("INSERT INTO users (username, full_name, profile_pic, is_verified, created_at) VALUES (?, ?, ?, ?, ?)", 
-                               (u_name, u_name, fname, 1, today_str))
+                cursor.execute(
+                    """INSERT INTO users (username, full_name, profile_pic, is_verified, created_at) 
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (u_name, u_name, fname, 1, today_str),
+                )
                 conn.commit()
                 conn.close()
-                
+
                 st.session_state.user = u_name
                 st.session_state.pic = fname
                 st.session_state.is_verified = 1
@@ -259,7 +358,7 @@ if not st.session_state.user:
 else:
     if st.session_state.pic and os.path.exists(st.session_state.pic):
         st.sidebar.image(st.session_state.pic, width=90)
-    
+
     st.sidebar.markdown(f"Welcome, **{st.session_state.user}**")
     if st.sidebar.button("Logout"):
         st.session_state.user = None
@@ -267,99 +366,134 @@ else:
         st.session_state.is_verified = 1
         st.rerun()
 
-# Dynamic Navigation Menu
+# Navigation Menu
+nav_tabs = [
+    "🌍 World Feed",
+    "📱 Scrolle Shorts Feed",
+    "🤖 AI Assistant",
+    "👤 My Profile & Earnings",
+    "📤 Create Post / Upload",
+]
 tab = st.sidebar.radio(
-    "Navigation", 
-    ["🌍 World Feed", "📱 Scrolle Shorts Feed", "👤 My Profile & Earnings", "📤 Create Post / Upload"],
-    index=["🌍 World Feed", "📱 Scrolle Shorts Feed", "👤 My Profile & Earnings", "📤 Create Post / Upload"].index(st.session_state.active_tab)
+    "Navigation",
+    nav_tabs,
+    index=nav_tabs.index(st.session_state.active_tab)
+    if st.session_state.active_tab in nav_tabs
+    else 0,
 )
 st.session_state.active_tab = tab
 
-# 7. World Feed
+# 8. World Feed
 if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # --- Top Scrolle Shorts Section (Clicking opens Shorts Feed) ---
+
     try:
-        cursor.execute("SELECT * FROM videos WHERE video_type = 'short' ORDER BY created_at DESC")
+        cursor.execute(
+            "SELECT * FROM videos WHERE video_type = 'short' ORDER BY created_at DESC"
+        )
         short_videos = [dict(r) for r in cursor.fetchall()]
-        
+
         if short_videos:
-            st.markdown('<div class="scrolle-header">▶️ Scrolle Shorts (Click to Watch Fullscreen Feed)</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="scrolle-header">▶️ Scrolle Shorts (Click to Watch Fullscreen Feed)</div>',
+                unsafe_allow_html=True,
+            )
             cols = st.columns(min(len(short_videos), 3))
             for i, sv in enumerate(short_videos[:3]):
                 with cols[i]:
                     st.markdown(f"**{sv.get('uploader_name', 'User')}** ✔️")
-                    if os.path.exists(sv['video_url']):
-                        st.video(sv['video_url'], format="video/mp4")
-                    
-                    if st.button(f"▶️ Watch in Shorts Feed", key=f"open_short_{sv['id']}"):
+                    if os.path.exists(sv["video_url"]):
+                        st.video(sv["video_url"], format="video/mp4")
+
+                    if st.button(
+                        "▶️ Watch in Shorts Feed", key=f"open_short_{sv['id']}"
+                    ):
                         st.session_state.active_tab = "📱 Scrolle Shorts Feed"
                         st.rerun()
                     st.caption(f"👁️ {format_value(sv.get('views', 0))} views")
             st.divider()
-    except Exception as e:
+    except Exception:
         pass
 
-    # --- Posts & Long Video Feed ---
     try:
         cursor.execute("SELECT * FROM videos WHERE video_type != 'short'")
         videos = [dict(row) for row in cursor.fetchall()]
-        
+
         cursor.execute("SELECT * FROM posts")
         posts = [dict(row) for row in cursor.fetchall()]
-        
+
         combined_feed = videos + posts
         random.shuffle(combined_feed)
-        
+
         if not combined_feed:
             st.info("No feeds uploaded yet.")
 
         for index, item in enumerate(combined_feed):
-            item_id = str(item['id'])
+            item_id = str(item["id"])
             uploader_name = item.get("uploader_name", "Unknown User")
             uploader_pic = item.get("uploader_pic", None)
             created_at = item.get("created_at", "Recently")
-            
+
             st.markdown('<div class="feed-card">', unsafe_allow_html=True)
-            show_verified_profile(uploader_name, profile_pic_path=uploader_pic, subtitle=f"Posted {created_at}")
-            
+            show_verified_profile(
+                uploader_name,
+                profile_pic_path=uploader_pic,
+                subtitle=f"Posted {created_at}",
+            )
+
             if "content" in item and item["content"]:
                 st.markdown(f"### {item['content']}")
-                
-            if "image_url" in item and item["image_url"] and os.path.exists(item["image_url"]):
+
+            if (
+                "image_url" in item
+                and item["image_url"]
+                and os.path.exists(item["image_url"])
+            ):
                 st.image(item["image_url"], use_container_width=True)
-                
-            if "video_url" in item and os.path.exists(item['video_url']):
+
+            if "video_url" in item and os.path.exists(item["video_url"]):
                 if item.get("title"):
                     st.markdown(f"#### {item.get('title')}")
-                st.video(item['video_url'], format="video/mp4")
-                
+                st.video(item["video_url"], format="video/mp4")
+
                 new_views = item.get("views", 0) + 1
-                cursor.execute("UPDATE videos SET views = ? WHERE id = ?", (new_views, item_id))
+                cursor.execute(
+                    "UPDATE videos SET views = ? WHERE id = ?", (new_views, item_id)
+                )
                 conn.commit()
 
             show_auto_moving_banner()
 
             st.write(f"❤️ **{format_value(item.get('likes', 0))}** Likes")
-            st.markdown(f'''
+            st.markdown(
+                f"""
                 <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-1">💰 Claim Monetization Reward</a>
                 <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-2">💎 Premium Bonus Link</a>
-            ''', unsafe_allow_html=True)
-            
+                """,
+                unsafe_allow_html=True,
+            )
+
             c1, c2 = st.columns(2)
             with c1:
-                if st.button(f"❤️ Like ({format_value(item.get('likes', 0))})", key=f"lk_{item_id}_{index}"):
+                if st.button(
+                    f"❤️ Like ({format_value(item.get('likes', 0))})",
+                    key=f"lk_{item_id}_{index}",
+                ):
                     table_name = "posts" if "content" in item else "videos"
-                    cursor.execute(f"UPDATE {table_name} SET likes = likes + 1 WHERE id = ?", (item_id,))
+                    cursor.execute(
+                        f"UPDATE {table_name} SET likes = likes + 1 WHERE id = ?",
+                        (item_id,),
+                    )
                     conn.commit()
                     st.rerun()
             with c2:
-                if st.button(f"➕ Follow", key=f"fl_{item_id}_{index}"):
+                if st.button("➕ Follow", key=f"fl_{item_id}_{index}"):
                     st.toast("Followed successfully!")
-                    
-            st.markdown('</div>', unsafe_allow_html=True)
+
+            render_comments_section(item_id)
+
+            st.markdown("</div>", unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Feed Error: {e}")
     finally:
@@ -370,102 +504,192 @@ elif tab == "📱 Scrolle Shorts Feed":
     st.subheader("📱 TikTok & Shorts Vertical Scroll Feed")
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM videos WHERE video_type = 'short' ORDER BY created_at DESC")
+    cursor.execute(
+        "SELECT * FROM videos WHERE video_type = 'short' ORDER BY created_at DESC"
+    )
     short_vids = [dict(r) for r in cursor.fetchall()]
     conn.close()
 
     if not short_vids:
-        st.info("কোনো শর্টস ভিডিও পাওয়া যায়নি। 'Create Post / Upload' থেকে নতুন শর্টস আপলোড করুন!")
+        st.info(
+            "কোনো শর্টস ভিডিও পাওয়া যায়নি। 'Create Post / Upload' থেকে নতুন শর্টস আপলোড করুন!"
+        )
     else:
         for idx, sv in enumerate(short_vids):
             st.markdown("---")
             col_main, col_side = st.columns([3, 1])
             with col_main:
-                show_verified_profile(sv.get("uploader_name", "User"), profile_pic_path=sv.get("uploader_pic"), subtitle="Official Shorts Creator")
+                show_verified_profile(
+                    sv.get("uploader_name", "User"),
+                    profile_pic_path=sv.get("uploader_pic"),
+                    subtitle="Official Shorts Creator",
+                )
                 st.markdown(f"**{sv.get('title', 'Short Video')}**")
-                if os.path.exists(sv['video_url']):
-                    st.video(sv['video_url'], format="video/mp4")
-                
+                if os.path.exists(sv["video_url"]):
+                    st.video(sv["video_url"], format="video/mp4")
+
                 conn = get_db_connection()
                 cursor = conn.cursor()
-                cursor.execute("UPDATE videos SET views = views + 1 WHERE id = ?", (sv['id'],))
+                cursor.execute(
+                    "UPDATE videos SET views = views + 1 WHERE id = ?", (sv["id"],)
+                )
                 conn.commit()
                 conn.close()
+
+                render_comments_section(sv["id"])
 
             with col_side:
                 st.write(" ")
                 st.write(" ")
-                if st.button(f"❤️ {format_value(sv.get('likes', 0))}", key=f"sh_like_{sv['id']}"):
+                if st.button(
+                    f"❤️ {format_value(sv.get('likes', 0))}", key=f"sh_like_{sv['id']}"
+                ):
                     conn = get_db_connection()
                     cursor = conn.cursor()
-                    cursor.execute("UPDATE videos SET likes = likes + 1 WHERE id = ?", (sv['id'],))
+                    cursor.execute(
+                        "UPDATE videos SET likes = likes + 1 WHERE id = ?", (sv["id"],)
+                    )
                     conn.commit()
                     conn.close()
                     st.toast("Liked!")
                     st.rerun()
-                
+
                 st.caption(f"👁️ {format_value(sv.get('views', 0))}")
-                
+
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
                     st.toast("Followed Creator!")
-                
+
                 if st.button("🔗 Share", key=f"sh_share_{sv['id']}"):
                     st.toast("Link Copied!")
-                
-                st.markdown(f'<a href="{SMART_LINK}" target="_blank" style="text-decoration:none; font-weight:bold; color:#00c853;">💰 Earn</a>', unsafe_allow_html=True)
 
-# 8. Profile Section
+                st.markdown(
+                    f'<a href="{SMART_LINK}" target="_blank" style="text-decoration:none; font-weight:bold; color:#00c853;">💰 Earn</a>',
+                    unsafe_allow_html=True,
+                )
+
+# 🤖 --- SMART AI CHATBOT SECTION ---
+elif tab == "🤖 AI Assistant":
+    st.subheader("🤖 Smart Multilingual AI Assistant")
+    st.caption(
+        "বাংলা, English সহ যেকোনো ভাষায় কথা বলুন। আপনার সাইটের নিরাপত্তা বা যেকোনো তথ্যের জন্য সাহায্য নিন।"
+    )
+
+    if "ai_chat_messages" not in st.session_state:
+        st.session_state.ai_chat_messages = []
+
+    for msg in st.session_state.ai_chat_messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    if prompt := st.chat_input("এখানে লিখুন..."):
+        st.session_state.ai_chat_messages.append(
+            {"role": "user", "content": prompt}
+        )
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            if ai_model:
+                with st.spinner("AI উত্তর তৈরি করছে..."):
+                    try:
+                        sys_context = (
+                            "You are an AI Smart Assistant for 'BD AI book' platform."
+                            " Respond natively in Bengali or English based on user query."
+                            " Be polite, secure, and helpful."
+                        )
+                        response = ai_model.generate_content(f"{sys_context}\n\n{prompt}")
+                        reply = response.text
+                        st.markdown(reply)
+                        st.session_state.ai_chat_messages.append(
+                            {"role": "assistant", "content": reply}
+                        )
+                    except Exception as err:
+                        st.error(f"AI সাইডে ত্রুটি ঘটেছে: {err}")
+            else:
+                st.error("Gemini API Key সঠিক নয় বা নেটওয়ার্ক সমস্যা!")
+
+# 9. Profile Section
 elif tab == "👤 My Profile & Earnings":
     if not st.session_state.user:
         st.warning("Please login to view your profile.")
     else:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        cursor.execute("SELECT * FROM users WHERE username = ?", (st.session_state.user,))
+
+        cursor.execute(
+            "SELECT * FROM users WHERE username = ?", (st.session_state.user,)
+        )
         raw_user = cursor.fetchone()
         user_info = dict(raw_user) if raw_user else {}
-        
-        cursor.execute("SELECT * FROM videos WHERE uploader_name = ?", (st.session_state.user,))
+
+        cursor.execute(
+            "SELECT * FROM videos WHERE uploader_name = ?", (st.session_state.user,)
+        )
         my_videos = [dict(r) for r in cursor.fetchall()]
-        
+
         total_likes = sum([v.get("likes", 0) for v in my_videos])
         total_views = sum([v.get("views", 0) for v in my_videos])
-        
-        display_name = user_info.get('full_name') if user_info.get('full_name') else st.session_state.user
-        pic_path = user_info.get('profile_pic', st.session_state.pic)
-        
-        show_verified_profile(display_name, profile_pic_path=pic_path, subtitle="Official Verified Creator")
-        
-        st.write(f"📹 Uploads: **{len(my_videos)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}**")
 
-        st.markdown(f'''
+        display_name = (
+            user_info.get("full_name")
+            if user_info.get("full_name")
+            else st.session_state.user
+        )
+        pic_path = user_info.get("profile_pic", st.session_state.pic)
+
+        show_verified_profile(
+            display_name,
+            profile_pic_path=pic_path,
+            subtitle="Official Verified Creator",
+        )
+
+        st.write(
+            f"📹 Uploads: **{len(my_videos)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}**"
+        )
+
+        st.markdown(
+            f"""
             <div class="monetization-box">
                 <h3 style="margin:0; color:#fff;">🌐 Global Monetization Dashboard</h3>
                 <p style="margin: 5px 0;">✅ <b>Status: Active & Global Revenue Unlocked</b></p>
                 <h2 style="margin: 10px 0; color: #ffffff;">💰 Est. Earnings: ${(total_views * 0.002) + (total_likes * 0.005):.2f} USD</h2>
             </div>
-        ''', unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
 
-        p_tab1, p_tab2, p_tab3 = st.tabs(["💳 Payout Methods", "⚙️ Account & NID Settings", "🎥 Manage Content"])
-        
+        p_tab1, p_tab2, p_tab3 = st.tabs([
+            "💳 Payout Methods",
+            "⚙️ Account & NID Settings",
+            "🎥 Manage Content",
+        ])
+
         with p_tab1:
             st.subheader("💳 Global Bank & Payment Setup")
             with st.form("payout_form"):
-                pay_method = st.selectbox("Select Payment Method", [
-                    "Visa / Mastercard Debit Card",
-                    "International Bank Transfer (SWIFT/IBAN)",
-                    "Mobile Financial Service (bKash / Nagad)",
-                    "PayPal / Crypto (USDT)"
-                ], index=0)
-                
-                curr_details = user_info.get('account_details', '') or ''
-                acc_info = st.text_area("Account Details (Card Number, Bank Name, Account No, IBAN or Mobile Number)", value=curr_details)
-                
+                pay_method = st.selectbox(
+                    "Select Payment Method",
+                    [
+                        "Visa / Mastercard Debit Card",
+                        "International Bank Transfer (SWIFT/IBAN)",
+                        "Mobile Financial Service (bKash / Nagad)",
+                        "PayPal / Crypto (USDT)",
+                    ],
+                    index=0,
+                )
+
+                curr_details = user_info.get("account_details", "") or ""
+                acc_info = st.text_area(
+                    "Account Details (Card Number, Bank Name, Account No, IBAN or Mobile Number)",
+                    value=curr_details,
+                )
+
                 submit_pay = st.form_submit_button("💾 Save Payment Settings")
                 if submit_pay:
-                    cursor.execute("UPDATE users SET payment_method = ?, account_details = ? WHERE username = ?", 
-                                   (pay_method, acc_info, st.session_state.user))
+                    cursor.execute(
+                        "UPDATE users SET payment_method = ?, account_details = ? WHERE username = ?",
+                        (pay_method, acc_info, st.session_state.user),
+                    )
                     conn.commit()
                     st.success("✅ Payment Details Updated Successfully!")
                     st.rerun()
@@ -473,14 +697,29 @@ elif tab == "👤 My Profile & Earnings":
         with p_tab2:
             st.subheader("⚙️ Identity & Profile Settings")
             with st.form("profile_settings_form"):
-                full_name_input = st.text_input("Full Name (English / As per NID)", value=user_info.get('full_name', '') or '')
-                nid_input = st.text_input("NID Card Number", value=user_info.get('nid_number', '') or '')
-                address_input = st.text_area("Address (Bangladesh / Local Address)", value=user_info.get('address', '') or '')
-                
+                full_name_input = st.text_input(
+                    "Full Name (English / As per NID)",
+                    value=user_info.get("full_name", "") or "",
+                )
+                nid_input = st.text_input(
+                    "NID Card Number", value=user_info.get("nid_number", "") or ""
+                )
+                address_input = st.text_area(
+                    "Address (Bangladesh / Local Address)",
+                    value=user_info.get("address", "") or "",
+                )
+
                 save_profile = st.form_submit_button("💾 Update Profile Data")
                 if save_profile:
-                    cursor.execute("UPDATE users SET full_name = ?, nid_number = ?, address = ? WHERE username = ?",
-                                   (full_name_input, nid_input, address_input, st.session_state.user))
+                    cursor.execute(
+                        "UPDATE users SET full_name = ?, nid_number = ?, address = ? WHERE username = ?",
+                        (
+                            full_name_input,
+                            nid_input,
+                            address_input,
+                            st.session_state.user,
+                        ),
+                    )
                     conn.commit()
                     st.success("✅ Profile & Identity details saved!")
                     st.rerun()
@@ -493,14 +732,18 @@ elif tab == "👤 My Profile & Earnings":
                 for idx, mv in enumerate(my_videos):
                     col_vid, col_del = st.columns([3, 1])
                     with col_vid:
-                        st.write(f"**{mv.get('title', 'Untitled')}** ({mv.get('views', 0)} Views)")
-                        if os.path.exists(mv['video_url']):
-                            st.video(mv['video_url'])
+                        st.write(
+                            f"**{mv.get('title', 'Untitled')}** ({mv.get('views', 0)} Views)"
+                        )
+                        if os.path.exists(mv["video_url"]):
+                            st.video(mv["video_url"])
                     with col_del:
                         if st.button("🗑️ Delete", key=f"del_{mv['id']}"):
-                            if os.path.exists(mv['video_url']):
-                                os.remove(mv['video_url'])
-                            cursor.execute("DELETE FROM videos WHERE id = ?", (mv['id'],))
+                            if os.path.exists(mv["video_url"]):
+                                os.remove(mv["video_url"])
+                            cursor.execute(
+                                "DELETE FROM videos WHERE id = ?", (mv["id"],)
+                            )
                             conn.commit()
                             st.success("Deleted!")
                             st.rerun()
@@ -508,72 +751,150 @@ elif tab == "👤 My Profile & Earnings":
 
         conn.close()
 
-# 9. Upload & Post Creation Section
+# 10. Upload & Post Creation Section (Daily Limits & AI Safety Integration)
 elif tab == "📤 Create Post / Upload":
     if not st.session_state.user:
         st.warning("Please login to create a post or upload.")
     else:
-        post_type = st.radio("Choose What to Share", ["📝 Photo & Text Post", "🎥 Video / Scrolle Shorts"])
-        
-        if post_type == "📝 Photo & Text Post":
-            st.subheader("📝 Create Facebook-Style Post")
+        today_date = datetime.now().strftime("%Y-%m-%d")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 📊 দৈনিক আপলোড গণনা চেক
+        cursor.execute("SELECT COUNT(*) FROM posts WHERE uploader_name = ? AND SUBSTR(created_at, 1, 10) = ?", (st.session_state.user, today_date))
+        today_posts_count = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM videos WHERE uploader_name = ? AND created_at = ? AND video_type = 'short'", (st.session_state.user, today_date))
+        today_shorts_count = cursor.fetchone()[0]
+
+        cursor.execute("SELECT COUNT(*) FROM videos WHERE uploader_name = ? AND created_at = ? AND video_type = 'long'", (st.session_state.user, today_date))
+        today_long_count = cursor.fetchone()[0]
+        conn.close()
+
+        st.info(f"📊 **আজকের লিমিট স্ট্যাটাস:** ফটো/টেক্সট পোস্ট: **{today_posts_count}/১০টি** | শর্টস ভিডিও: **{today_shorts_count}/১টি** | লং ভিডিও: **{today_long_count}/১টি**")
+
+        post_type = st.radio(
+            "কী শেয়ার করতে চান সিলেক্ট করুন:",
+            ["📝 Photo & Text Post (দৈনিক ১০টি)", "🎥 Video / Scrolle Shorts (দৈনিক ১টি)"],
+        )
+
+        # 1️⃣ ফটো ও টেক্সট পোস্ট সেকশন
+        if "Photo & Text" in post_type:
+            st.subheader("📝 Create Photo & Text Post")
             post_text = st.text_area("What's on your mind?")
-            img_file = st.file_uploader("Upload Photo (JPG/PNG)", type=['jpg', 'png', 'jpeg'])
-            
+            img_file = st.file_uploader("Upload Photo (JPG/PNG)", type=["jpg", "png", "jpeg"])
+
             if st.button("🚀 Publish Post"):
-                img_path = None
-                if img_file:
-                    img_path = os.path.join(IMAGE_DIR, f"img_{uuid.uuid4()}.jpg")
-                    with open(img_path, "wb") as f:
-                        f.write(img_file.getvalue())
-                        
-                today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO posts (id, uploader_name, uploader_pic, content, image_url, likes, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (str(uuid.uuid4()), st.session_state.user, st.session_state.pic, post_text, img_path, random.randint(5, 20), today_str))
-                conn.commit()
-                conn.close()
-                st.success("🎉 Post Published Successfully!")
-                st.rerun()
-                
+                if today_posts_count >= 10:
+                    st.error("🛑 আপনার আজকের ১০টি পোস্ট করার লিমিট শেষ হয়ে গেছে! আবার আগামীকাল পোস্ট করতে পারবেন।")
+                elif not post_text and not img_file:
+                    st.warning("পোস্টে কিছু লিখুন অথবা ছবি যুক্ত করুন!")
+                else:
+                    # 🛡️ AI সেফটি ফিল্টার (পোস্টের খারাপ কন্টেন্ট চেক)
+                    is_safe = True
+                    if ai_model and post_text:
+                        with st.spinner("🔍 AI পোস্টটি পরীক্ষা করছে..."):
+                            check_prompt = f"Analyze if this text contains any adult, sexual, vulgar, explicit, or abusive content. Reply ONLY 'SAFE' or 'UNSAFE': {post_text}"
+                            try:
+                                res = ai_model.generate_content(check_prompt)
+                                if "UNSAFE" in res.text.upper():
+                                    is_safe = False
+                            except Exception:
+                                is_safe = True
+
+                    if not is_safe:
+                        st.error("❌ এই পোস্টে সেক্সুয়াল বা খারাপ কোনো বিষয়বস্তু শনাক্ত হয়েছে! আমাদের নিয়মানুযায়ী এই পোস্টটি পাবলিশ হতে পারবে না।")
+                    else:
+                        img_path = None
+                        if img_file:
+                            img_path = os.path.join(IMAGE_DIR, f"img_{uuid.uuid4()}.jpg")
+                            with open(img_path, "wb") as f:
+                                f.write(img_file.getvalue())
+
+                        today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+                        conn = get_db_connection()
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            """
+                            INSERT INTO posts (id, uploader_name, uploader_pic, content, image_url, likes, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                str(uuid.uuid4()),
+                                st.session_state.user,
+                                st.session_state.pic,
+                                post_text,
+                                img_path,
+                                random.randint(5, 20),
+                                today_str,
+                            ),
+                        )
+                        conn.commit()
+                        conn.close()
+                        st.success("🎉 আপনার চমৎকার পোস্টটি নিরাপদে পাবলিশ হয়েছে!")
+                        st.rerun()
+
+        # 2️⃣ ভিডিও আপলোড সেকশন (লং ও শর্ট ভিডিও লিমিট + সেফটি চেক)
         else:
-            st.subheader("📤 Upload Video or Scrolle Shorts")
+            st.subheader("📤 Upload Video (AI Safety Protected)")
             v_title = st.text_input("Video Title")
-            v_type = st.selectbox("Video Format", ["Long Video", "Scrolle Short Video"])
-            file = st.file_uploader("Select MP4 Video File", type=['mp4'])
-            
-            if st.button("🚀 Publish Video") and file:
-                today = datetime.now().strftime("%Y-%m-%d")
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                
-                v_id = str(uuid.uuid4())
-                v_name = os.path.join(VIDEO_DIR, f"v_{v_id}.mp4")
-                
-                with open(v_name, "wb") as f_dst:
-                    f_dst.write(file.getvalue())
-                
-                video_kind = "short" if "Short" in v_type else "long"
-                
-                cursor.execute("""
-                    INSERT INTO videos (id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, followers, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    v_id, 
-                    v_name, 
-                    st.session_state.user,
-                    st.session_state.pic, 
-                    video_kind,
-                    v_title if v_title else "Untitled Video",
-                    random.randint(10, 50), 
-                    1, 
-                    random.randint(5, 30),
-                    today
-                ))
-                conn.commit()
-                conn.close()
-                st.success("🎉 Video Uploaded Successfully!")
-                st.rerun()
+            v_type = st.selectbox("Video Format", ["Long Video (দৈনিক ১টি)", "Scrolle Short Video (দৈনিক ১টি)"])
+            file = st.file_uploader("Select MP4 Video File", type=["mp4"])
+
+            if st.button("🚀 Publish Video"):
+                is_short = "Short" in v_type
+
+                if is_short and today_shorts_count >= 1:
+                    st.error("🛑 আপনি আজকে ১টি শর্ট ভিডিও আপলোড করে ফেলেছেন! দিনে ১টির বেশি শর্ট ভিডিও দেওয়া যাবে না।")
+                elif not is_short and today_long_count >= 1:
+                    st.error("🛑 আপনি আজকে ১টি লং ভিডিও আপলোড করে ফেলেছেন! দিনে ১টির বেশি লং ভিডিও দেওয়া যাবে না।")
+                elif not file:
+                    st.warning("একটি MP4 ভিডিও সিলেক্ট করুন!")
+                else:
+                    # 🛡️ AI সেফটি ফিল্টার (ভিডিও টাইটেল চেক)
+                    is_safe = True
+                    if ai_model and v_title:
+                        with st.spinner("🔍 AI ভিডিওটি পরীক্ষা করে দেখছি..."):
+                            check_prompt = f"Analyze if this title promotes sexual, adult, explicit, or harmful content. Reply ONLY 'SAFE' or 'UNSAFE': {v_title}"
+                            try:
+                                res = ai_model.generate_content(check_prompt)
+                                if "UNSAFE" in res.text.upper():
+                                    is_safe = False
+                            except Exception:
+                                is_safe = True
+
+                    if not is_safe:
+                        st.error("❌ এই ভিডিওতে সেক্সুয়াল বা আপত্তিকর বিষয়বস্তু শনাক্ত হয়েছে! ভিডিওটি আপলোড নেওয়া হয়নি।")
+                    else:
+                        v_id = str(uuid.uuid4())
+                        v_name = os.path.join(VIDEO_DIR, f"v_{v_id}.mp4")
+
+                        with open(v_name, "wb") as f_dst:
+                            f_dst.write(file.getvalue())
+
+                        video_kind = "short" if is_short else "long"
+
+                        conn = get_db_connection()
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            """
+                            INSERT INTO videos (id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, followers, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                v_id,
+                                v_name,
+                                st.session_state.user,
+                                st.session_state.pic,
+                                video_kind,
+                                v_title if v_title else "Untitled Video",
+                                random.randint(10, 50),
+                                1,
+                                random.randint(5, 30),
+                                today_date,
+                            ),
+                        )
+                        conn.commit()
+                        conn.close()
+                        st.success("🎉 ভিডিওটি AI পরীক্ষা সম্পন্ন করে সফলভাবে পাবলিশ করা হয়েছে!")
+                        st.rerun()
