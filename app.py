@@ -10,7 +10,9 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. Page Configuration
+# ==========================================
+# 1. PAGE CONFIGURATION & META
+# ==========================================
 st.set_page_config(
     page_title="BD AI Book — Verified Social Network",
     page_icon="📖",
@@ -29,7 +31,9 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# 2. Local Storage and Database Setup
+# ==========================================
+# 2. LOCAL STORAGE & DATABASE SETUP
+# ==========================================
 DB_FILE = "local_storage.db"
 VIDEO_DIR = "stored_videos"
 IMAGE_DIR = "stored_images"
@@ -50,9 +54,11 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Users Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
             full_name TEXT,
             profile_pic TEXT,
             is_verified INTEGER DEFAULT 1,
@@ -60,13 +66,33 @@ def init_db():
             account_details TEXT,
             nid_number TEXT,
             address TEXT,
+            followers_count INTEGER DEFAULT 0,
+            watch_time_mins REAL DEFAULT 0.0,
+            monetization_status TEXT DEFAULT 'none',
+            earnings REAL DEFAULT 0.0,
             created_at TEXT
         )
     """)
 
+    # Check & Add Missing Columns to `users` if DB already exists
+    user_columns = [
+        ("followers_count", "INTEGER DEFAULT 0"),
+        ("watch_time_mins", "REAL DEFAULT 0.0"),
+        ("monetization_status", "TEXT DEFAULT 'none'"),
+        ("earnings", "REAL DEFAULT 0.0"),
+        ("id", "INTEGER"),
+    ]
+    for col_name, col_type in user_columns:
+        try:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+    # Videos Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS videos (
             id TEXT PRIMARY KEY,
+            user_id INTEGER,
             video_url TEXT,
             uploader_name TEXT,
             uploader_pic TEXT,
@@ -74,11 +100,27 @@ def init_db():
             title TEXT,
             likes INTEGER DEFAULT 0,
             views INTEGER DEFAULT 0,
+            views_count INTEGER DEFAULT 0,
             followers INTEGER DEFAULT 0,
-            created_at TEXT
+            created_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
 
+    # Check & Add Missing Columns to `videos`
+    video_columns = [
+        ("user_id", "INTEGER"),
+        ("views_count", "INTEGER DEFAULT 0"),
+    ]
+    for col_name, col_type in video_columns:
+        try:
+            cursor.execute(
+                f"ALTER TABLE videos ADD COLUMN {col_name} {col_type}"
+            )
+        except sqlite3.OperationalError:
+            pass
+
+    # Posts Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS posts (
             id TEXT PRIMARY KEY,
@@ -91,6 +133,7 @@ def init_db():
         )
     """)
 
+    # Comments Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS comments (
             id TEXT PRIMARY KEY,
@@ -109,8 +152,64 @@ def init_db():
 init_db()
 
 
-# Helper Functions
+# ==========================================
+# 3. DATABASE HELPER FUNCTIONS
+# ==========================================
+def register_or_get_user(username):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute(
+        "SELECT id, username, followers_count, watch_time_mins, monetization_status, earnings FROM users WHERE username = ?",
+        (username,),
+    )
+    user = c.fetchone()
+    if not user:
+        c.execute(
+            "INSERT INTO users (username, created_at) VALUES (?, ?)",
+            (username, datetime.now().strftime("%Y-%m-%d")),
+        )
+        conn.commit()
+        c.execute(
+            "SELECT id, username, followers_count, watch_time_mins, monetization_status, earnings FROM users WHERE username = ?",
+            (username,),
+        )
+        user = c.fetchone()
+    conn.close()
+    return {
+        "id": user["id"],
+        "username": user["username"],
+        "followers_count": user["followers_count"] or 0,
+        "watch_time_mins": user["watch_time_mins"] or 0.0,
+        "monetization_status": user["monetization_status"] or "none",
+        "earnings": user["earnings"] or 0.0,
+    }
+
+
+def update_monetization_status(user_id, status):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute(
+        "UPDATE users SET monetization_status = ? WHERE id = ?",
+        (status, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def add_followers(user_id, count=1):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute(
+        "UPDATE users SET followers_count = followers_count + ? WHERE id = ?",
+        (count, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
 def format_value(value):
+    if value is None:
+        return "0"
     if value >= 1000000:
         return f"{value/1000000:.1f}M"
     if value >= 1000:
@@ -140,10 +239,13 @@ def show_verified_profile(
     else:
         img_html = '<div style="width:50px; height:50px; border-radius:50%; background:#2a2a2a; color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px;">👤</div>'
 
-    # Facebook Style Official Blue Verified Badge SVG
-    blue_tick_svg = """<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-left: 6px; vertical-align: middle;">
+    blue_tick_svg = (
+        """<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-left: 6px; vertical-align: middle;">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#1877F2"/>
-    </svg>""" if is_verified else ""
+    </svg>"""
+        if is_verified
+        else ""
+    )
 
     html_code = f"""<div style="display: flex; align-items: center; gap: 12px; background: #18191a; padding: 12px; border-radius: 12px; border: 1px solid #2d2f31; margin-bottom: 12px;">
 <div>{img_html}</div>
@@ -246,7 +348,9 @@ def render_comments_section(post_id):
         conn.close()
 
 
-# Custom Styling
+# ==========================================
+# 4. CUSTOM STYLING
+# ==========================================
 st.markdown(
     """
     <style>
@@ -286,7 +390,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ==================== MAIN HEADER LOGO SECTION ====================
+# ==========================================
+# 5. MAIN HEADER LOGO SECTION
+# ==========================================
 if os.path.exists("logo.jpg"):
     col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
     with col_l2:
@@ -313,7 +419,9 @@ if "user" not in st.session_state:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "🌍 World Feed"
 
-# Sidebar Navigation & Profile
+# ==========================================
+# 6. SIDEBAR NAVIGATION & AUTHENTICATION
+# ==========================================
 if os.path.exists("logo.jpg"):
     st.sidebar.image("logo.jpg", use_container_width=True)
 
@@ -354,7 +462,9 @@ if not st.session_state.user:
                 st.session_state.user = u_name
                 st.session_state.pic = fname
                 st.session_state.is_verified = 1
-                st.sidebar.success("🎉 Account Verified & Created Successfully!")
+                st.sidebar.success(
+                    "🎉 Account Verified & Created Successfully!"
+                )
                 st.rerun()
 else:
     if st.session_state.pic and os.path.exists(st.session_state.pic):
@@ -385,7 +495,11 @@ tab = st.sidebar.radio(
 )
 st.session_state.active_tab = tab
 
-# World Feed
+# ==========================================
+# 7. TAB IMPLEMENTATIONS
+# ==========================================
+
+# --- World Feed ---
 if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -429,7 +543,9 @@ if tab == "🌍 World Feed":
         random.shuffle(combined_feed)
 
         if not combined_feed:
-            st.info("No posts or videos available. Create content from the Upload section.")
+            st.info(
+                "No posts or videos available. Create content from the Upload section."
+            )
 
         for index, item in enumerate(combined_feed):
             item_id = str(item["id"])
@@ -462,7 +578,8 @@ if tab == "🌍 World Feed":
 
                 new_views = item.get("views", 0) + 1
                 cursor.execute(
-                    "UPDATE videos SET views = ? WHERE id = ?", (new_views, item_id)
+                    "UPDATE videos SET views = ?, views_count = ? WHERE id = ?",
+                    (new_views, new_views, item_id),
                 )
                 conn.commit()
 
@@ -502,7 +619,7 @@ if tab == "🌍 World Feed":
     finally:
         conn.close()
 
-# Shorts Feed
+# --- Shorts Feed ---
 elif tab == "📱 Scrolle Shorts Feed":
     st.subheader("📱 TikTok & Shorts Vertical Scroll Feed")
     conn = get_db_connection()
@@ -533,7 +650,8 @@ elif tab == "📱 Scrolle Shorts Feed":
                 conn = get_db_connection()
                 cursor = conn.cursor()
                 cursor.execute(
-                    "UPDATE videos SET views = views + 1 WHERE id = ?", (sv["id"],)
+                    "UPDATE videos SET views = views + 1, views_count = views_count + 1 WHERE id = ?",
+                    (sv["id"],),
                 )
                 conn.commit()
                 conn.close()
@@ -543,12 +661,14 @@ elif tab == "📱 Scrolle Shorts Feed":
             with col_side:
                 st.write(" ")
                 if st.button(
-                    f"❤️ {format_value(sv.get('likes', 0))}", key=f"sh_like_{sv['id']}"
+                    f"❤️ {format_value(sv.get('likes', 0))}",
+                    key=f"sh_like_{sv['id']}",
                 ):
                     conn = get_db_connection()
                     cursor = conn.cursor()
                     cursor.execute(
-                        "UPDATE videos SET likes = likes + 1 WHERE id = ?", (sv["id"],)
+                        "UPDATE videos SET likes = likes + 1 WHERE id = ?",
+                        (sv["id"],),
                     )
                     conn.commit()
                     conn.close()
@@ -560,7 +680,7 @@ elif tab == "📱 Scrolle Shorts Feed":
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
                     st.toast("Followed Creator!")
 
-# WhatsApp Support Desk
+# --- WhatsApp Support Desk ---
 elif tab == "💬 WhatsApp Support Desk":
     st.subheader("💬 Official WhatsApp Support Desk")
     st.caption("Contact us directly to ask questions or resolve issues.")
@@ -597,10 +717,12 @@ elif tab == "💬 WhatsApp Support Desk":
         unsafe_allow_html=True,
     )
 
-# Payout & Bank Setup Section
+# --- Payout & Monetization ---
 elif tab == "💳 Payout & Monetization":
     st.subheader("🏦 Global Monetization & Bank Setup")
-    st.info("Select your preferred payment method and submit account details to receive earnings.")
+    st.info(
+        "Select your preferred payment method and submit account details to receive earnings."
+    )
 
     pay_method = st.selectbox(
         "Select Payment Method:",
@@ -638,11 +760,13 @@ elif tab == "💳 Payout & Monetization":
         else:
             st.warning("Please complete all required fields correctly.")
 
-# Profile Section
+# --- My Profile & Earnings ---
 elif tab == "👤 My Profile & Earnings":
     if not st.session_state.user:
         st.warning("Please login to view your profile.")
     else:
+        user_data_merged = register_or_get_user(st.session_state.user)
+
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -653,12 +777,14 @@ elif tab == "👤 My Profile & Earnings":
         user_info = dict(raw_user) if raw_user else {}
 
         cursor.execute(
-            "SELECT * FROM videos WHERE uploader_name = ?", (st.session_state.user,)
+            "SELECT * FROM videos WHERE uploader_name = ?",
+            (st.session_state.user,),
         )
         my_videos = [dict(r) for r in cursor.fetchall()]
 
         cursor.execute(
-            "SELECT * FROM posts WHERE uploader_name = ?", (st.session_state.user,)
+            "SELECT * FROM posts WHERE uploader_name = ?",
+            (st.session_state.user,),
         )
         my_posts = [dict(r) for r in cursor.fetchall()]
 
@@ -673,12 +799,18 @@ elif tab == "👤 My Profile & Earnings":
         show_verified_profile(
             display_name,
             profile_pic_path=pic_path,
-            subtitle="Official Verified Creator",
+            subtitle=f"Official Verified Creator | Status: {user_data_merged['monetization_status'].title()}",
             is_verified=True,
         )
 
         st.write(
-            f"📹 Videos/Shorts: **{len(my_videos)}** | 🖼️ Posts: **{len(my_posts)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}**"
+            f"📹 Videos/Shorts: **{len(my_videos)}** | 🖼️ Posts: **{len(my_posts)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}** | 👥 Followers: **{format_value(user_data_merged['followers_count'])}**"
+        )
+
+        est_earnings = (
+            (total_views * 0.002)
+            + (total_likes * 0.005)
+            + user_data_merged["earnings"]
         )
 
         st.markdown(
@@ -686,7 +818,7 @@ elif tab == "👤 My Profile & Earnings":
             <div class="monetization-box">
                 <h3 style="margin:0; color:#fff;">🌐 Global Monetization Dashboard</h3>
                 <p style="margin: 5px 0;">✅ <b>Status: Active & Global Revenue Unlocked</b></p>
-                <h2 style="margin: 10px 0; color: #ffffff;">💰 Est. Earnings: ${(total_views * 0.002) + (total_likes * 0.005):.2f} USD</h2>
+                <h2 style="margin: 10px 0; color: #ffffff;">💰 Est. Earnings: ${est_earnings:.2f} USD</h2>
                 <p style="margin:0; font-size:12px;">Saved Method: <b>{user_info.get('payment_method', 'Not Set')}</b> ({user_info.get('account_details', 'N/A')})</p>
             </div>
             """,
@@ -697,10 +829,14 @@ elif tab == "👤 My Profile & Earnings":
         for mv in my_videos:
             col1, col2 = st.columns([4, 1])
             with col1:
-                st.caption(f"Type: {mv.get('video_type', 'long')} | Title: {mv.get('title')}")
+                st.caption(
+                    f"Type: {mv.get('video_type', 'long')} | Title: {mv.get('title')}"
+                )
             with col2:
                 if st.button("🗑️ Delete", key=f"del_v_{mv['id']}"):
-                    cursor.execute("DELETE FROM videos WHERE id = ?", (mv["id"],))
+                    cursor.execute(
+                        "DELETE FROM videos WHERE id = ?", (mv["id"],)
+                    )
                     conn.commit()
                     conn.close()
                     st.toast("Video deleted successfully!")
@@ -708,14 +844,13 @@ elif tab == "👤 My Profile & Earnings":
 
         conn.close()
 
-# Upload Section
+# --- Upload Section ---
 elif tab == "📤 Create Post / Upload":
     if not st.session_state.user:
         st.warning("Please login to create a post or upload content.")
     else:
         st.subheader("📤 Upload Content")
 
-        # Guidelines Box
         st.warning(
             "⚠️ **Community Guidelines:** Sexual, adult, or violent content is strictly prohibited. Violating terms will lead to immediate account suspension and loss of earnings."
         )
@@ -783,21 +918,27 @@ elif tab == "📤 Create Post / Upload":
                     )
                     today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
+                    user_data_merged = register_or_get_user(
+                        st.session_state.user
+                    )
+
                     conn = get_db_connection()
                     cursor = conn.cursor()
                     cursor.execute(
                         """
-                        INSERT INTO videos (id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO videos (id, user_id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, views_count, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             str(uuid.uuid4()),
+                            user_data_merged["id"],
                             v_path,
                             st.session_state.user,
                             st.session_state.pic,
                             v_type,
                             v_title,
                             random.randint(10, 50),
+                            random.randint(50, 200),
                             random.randint(50, 200),
                             today_str,
                         ),
