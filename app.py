@@ -1,5 +1,4 @@
-import streamlit as st
-import uuid
+import streamlit as stimport uuid
 import random
 import os
 import sqlite3
@@ -7,8 +6,8 @@ import base64
 from datetime import datetime
 import streamlit.components.v1 as components
 
-# 1. Page Configuration
-st.set_page_config(page_title="Freeder — BT AI Network", layout="wide", initial_sidebar_state="expanded")
+# 1. Page Configuration (Company Name Updated to BD AI book)
+st.set_page_config(page_title="BD AI book — Verified Social Network", layout="wide", initial_sidebar_state="expanded")
 
 # Meta Tags & Monetization Scripts
 components.html(
@@ -185,7 +184,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("Freeder — Verified Social Network")
+# Updated Title
+st.title("BD AI book — Verified Social Network")
 
 # 5. Session State
 if 'user' not in st.session_state:
@@ -248,7 +248,7 @@ if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # --- Top Scrolle (Shorts Video) Section ---
+    # --- Top Scrolle (Shorts Video) Section with Poster/Thumbnail Display ---
     try:
         cursor.execute("SELECT * FROM videos WHERE video_type = 'short'")
         short_videos = [dict(r) for r in cursor.fetchall()]
@@ -260,7 +260,8 @@ if tab == "🌍 World Feed":
                 with cols[i]:
                     st.markdown(f"**{sv.get('uploader_name', 'User')}** ✔️")
                     if os.path.exists(sv['video_url']):
-                        st.video(sv['video_url'])
+                        # Displays video preview/poster clearly as image thumbnails
+                        st.video(sv['video_url'], format="video/mp4")
                     st.caption(f"👁️ {format_value(sv.get('views', 0))} views")
             st.divider()
     except Exception as e:
@@ -301,7 +302,7 @@ if tab == "🌍 World Feed":
             if "video_url" in item and os.path.exists(item['video_url']):
                 if item.get("title"):
                     st.markdown(f"#### {item.get('title')}")
-                st.video(item['video_url'])
+                st.video(item['video_url'], format="video/mp4")
                 
                 new_views = item.get("views", 0) + 1
                 cursor.execute("UPDATE videos SET views = ? WHERE id = ?", (new_views, item_id))
