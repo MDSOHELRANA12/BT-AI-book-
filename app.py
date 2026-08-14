@@ -12,7 +12,7 @@ import streamlit.components.v1 as components
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="BD AI book — Verified Social Network",
+    page_title="BD AI Book — Verified Social Network",
     page_icon="📖",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -132,19 +132,25 @@ def show_verified_profile(
     display_name,
     profile_pic_path=None,
     subtitle="Official Global Verified Creator",
+    is_verified=True,
 ):
     b64_img = get_image_base64(profile_pic_path)
     if b64_img:
-        img_html = f'<img src="data:image/jpeg;base64,{b64_img}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #00c853;">'
+        img_html = f'<img src="data:image/jpeg;base64,{b64_img}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #1877F2;">'
     else:
         img_html = '<div style="width:50px; height:50px; border-radius:50%; background:#2a2a2a; color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px;">👤</div>'
+
+    # Facebook Style Official Blue Verified Badge SVG
+    blue_tick_svg = """<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-left: 6px; vertical-align: middle;">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#1877F2"/>
+    </svg>""" if is_verified else ""
 
     html_code = f"""<div style="display: flex; align-items: center; gap: 12px; background: #18191a; padding: 12px; border-radius: 12px; border: 1px solid #2d2f31; margin-bottom: 12px;">
 <div>{img_html}</div>
 <div>
 <div style="display: flex; align-items: center; font-weight: 700; font-size: 17px; color: #e4e6eb; font-family: sans-serif;">
 <span>{display_name}</span>
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-left: 6px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#00c853"/></svg>
+{blue_tick_svg}
 </div>
 <div style="color: #b0b3b8; font-size: 12px; margin-top: 1px;">{subtitle}</div>
 </div>
@@ -190,17 +196,17 @@ def render_comments_section(post_id):
                 )
                 st.markdown("---")
         else:
-            st.caption("এখনো কোনো কমেন্ট করা হয়নি।")
+            st.caption("No comments yet.")
 
         if st.session_state.user:
             with st.form(key=f"c_form_{post_id}"):
                 c_input = st.text_input(
-                    "কমেন্ট লিখুন...",
+                    "Write a comment...",
                     key=f"inp_{post_id}",
-                    placeholder="আপনার মতামত...",
+                    placeholder="Share your thoughts...",
                 )
                 gift_selected = st.selectbox(
-                    "🎁 গিফট সিলেক্ট করুন",
+                    "🎁 Select Gift",
                     [
                         "None",
                         "🎁 Gift Box (+10 pts)",
@@ -210,7 +216,7 @@ def render_comments_section(post_id):
                     ],
                     key=f"gft_{post_id}",
                 )
-                submit_btn = st.form_submit_button("পোস্ট করুন")
+                submit_btn = st.form_submit_button("Post Comment")
 
                 if submit_btn:
                     if c_input.strip():
@@ -231,12 +237,12 @@ def render_comments_section(post_id):
                         )
                         conn.commit()
                         conn.close()
-                        st.toast("✅ কমেন্ট পোস্ট হয়েছে!")
+                        st.toast("✅ Comment published successfully!")
                         st.rerun()
                     else:
-                        st.warning("কমেন্ট খালি রাখা যাবে না!")
+                        st.warning("Comment cannot be empty!")
         else:
-            st.info("কমেন্ট করতে লগইন করুন।")
+            st.info("Please log in to leave a comment.")
         conn.close()
 
 
@@ -348,13 +354,13 @@ if not st.session_state.user:
                 st.session_state.user = u_name
                 st.session_state.pic = fname
                 st.session_state.is_verified = 1
-                st.sidebar.success("🎉 Account Created Successfully!")
+                st.sidebar.success("🎉 Account Verified & Created Successfully!")
                 st.rerun()
 else:
     if st.session_state.pic and os.path.exists(st.session_state.pic):
         st.sidebar.image(st.session_state.pic, width=90)
 
-    st.sidebar.markdown(f"Welcome, **{st.session_state.user}**")
+    st.sidebar.markdown(f"Welcome, **{st.session_state.user}** ✔️")
     if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.session_state.pic = None
@@ -423,7 +429,7 @@ if tab == "🌍 World Feed":
         random.shuffle(combined_feed)
 
         if not combined_feed:
-            st.info("এখনো কোনো পোস্ট বা ভিডিও নেই। আপলোড সেকশন থেকে আপলোড করুন।")
+            st.info("No posts or videos available. Create content from the Upload section.")
 
         for index, item in enumerate(combined_feed):
             item_id = str(item["id"])
@@ -436,6 +442,7 @@ if tab == "🌍 World Feed":
                 uploader_name,
                 profile_pic_path=uploader_pic,
                 subtitle=f"Posted {created_at}",
+                is_verified=True,
             )
 
             if "content" in item and item["content"]:
@@ -507,7 +514,7 @@ elif tab == "📱 Scrolle Shorts Feed":
     conn.close()
 
     if not short_vids:
-        st.info("কোনো শর্টস ভিডিও পাওয়া যায়নি।")
+        st.info("No shorts videos found.")
     else:
         for idx, sv in enumerate(short_vids):
             st.markdown("---")
@@ -517,6 +524,7 @@ elif tab == "📱 Scrolle Shorts Feed":
                     sv.get("uploader_name", "User"),
                     profile_pic_path=sv.get("uploader_pic"),
                     subtitle="Official Shorts Creator",
+                    is_verified=True,
                 )
                 st.markdown(f"**{sv.get('title', 'Short Video')}**")
                 if os.path.exists(sv["video_url"]):
@@ -555,10 +563,10 @@ elif tab == "📱 Scrolle Shorts Feed":
 # WhatsApp Support Desk
 elif tab == "💬 WhatsApp Support Desk":
     st.subheader("💬 Official WhatsApp Support Desk")
-    st.caption("সরাসরি আমাদের সাথে কথা বলুন, প্রশ্ন করুন বা সমস্যা শেয়ার করুন।")
+    st.caption("Contact us directly to ask questions or resolve issues.")
 
     HIDDEN_WA_NUMBER = "8801722003172"
-    default_msg = "হ্যালো! BD AI Book অ্যাপ থেকে যুক্ত হয়েছি। আমার একটি বিষয় জানানোর/ছবি পাঠানোর আছে।"
+    default_msg = "Hello! I am contacting you from BD AI Book App."
     encoded_msg = urllib.parse.quote(default_msg)
     wa_link = f"https://wa.me/{HIDDEN_WA_NUMBER}?text={encoded_msg}"
 
@@ -567,7 +575,7 @@ elif tab == "💬 WhatsApp Support Desk":
         <div style="background: linear-gradient(135deg, #075E54, #128C7E); padding: 25px; border-radius: 15px; color: white; text-align: center; border: 1px solid #25D366; margin: 20px 0;">
             <h2 style="margin-top:0; color: #ffffff;">🌐 Official WhatsApp Support</h2>
             <p style="font-size: 15px; color: #e0e0e0; margin-bottom: 20px;">
-                সারা বিশ্বের যেকোনো প্রান্ত থেকে যেকোনো সমস্যা, অভিযোগ, পরামর্শ বা <b>ছবি/স্ক্রিনশট</b> পাঠাতে নিচের বাটনে চাপ দিন।
+                Click below to send messages, feedback, or screenshots directly to our team.
             </p>
             <a href="{wa_link}" target="_blank" style="
                 background-color: #25D366; 
@@ -582,7 +590,7 @@ elif tab == "💬 WhatsApp Support Desk":
                 📲 Send WhatsApp Message / Photo
             </a>
             <p style="font-size: 12px; color: #ffeb3b; margin-top: 20px; margin-bottom: 0;">
-                ⚠️ <b>Note:</b> Only text messages and photo/file sharing are allowed. Direct calls are not supported.
+                ⚠️ <b>Note:</b> Only text messages and file sharing are supported. Direct voice calls are not available.
             </p>
         </div>
         """,
@@ -592,22 +600,22 @@ elif tab == "💬 WhatsApp Support Desk":
 # Payout & Bank Setup Section
 elif tab == "💳 Payout & Monetization":
     st.subheader("🏦 Global Monetization & Bank Setup")
-    st.info("আপনার অর্জিত টাকা পেমেন্ট নিতে নিচের যেকোনো মেথড সিলেক্ট করে তথ্য সাবমিট করুন।")
+    st.info("Select your preferred payment method and submit account details to receive earnings.")
 
     pay_method = st.selectbox(
-        "পেমেন্ট মেথড সিলেক্ট করুন:",
+        "Select Payment Method:",
         [
-            "📱 bkash (বিকাশ)",
-            "📱 Nagad (নগদ)",
-            "📱 Rocket (রকেট)",
+            "📱 bkash",
+            "📱 Nagad",
+            "📱 Rocket",
             "🌐 PayPal",
             "💳 Mastercard / Visa Card",
             "🏦 Bank Transfer",
         ],
     )
 
-    acc_num = st.text_input("একাউন্ট নম্বর / ইমেইল / কার্ড নম্বর")
-    holder_name = st.text_input("একাউন্ট হোল্ডারের নাম")
+    acc_num = st.text_input("Account Number / Email / Card Number")
+    holder_name = st.text_input("Account Holder Name")
 
     if st.button("💾 Save Payment Details"):
         if acc_num and holder_name:
@@ -624,11 +632,11 @@ elif tab == "💳 Payout & Monetization":
                 )
                 conn.commit()
                 conn.close()
-                st.success("✅ পেমেন্ট অ্যাকাউন্ট সফলভাবে যুক্ত হয়েছে!")
+                st.success("✅ Payment account updated successfully!")
             else:
-                st.error("অনুগ্রহ করে প্রথমে লগইন করুন।")
+                st.error("Please login first.")
         else:
-            st.warning("সবগুলো ঘর সঠিক তথ্য দিয়ে পূরণ করুন।")
+            st.warning("Please complete all required fields correctly.")
 
 # Profile Section
 elif tab == "👤 My Profile & Earnings":
@@ -666,6 +674,7 @@ elif tab == "👤 My Profile & Earnings":
             display_name,
             profile_pic_path=pic_path,
             subtitle="Official Verified Creator",
+            is_verified=True,
         )
 
         st.write(
@@ -694,7 +703,7 @@ elif tab == "👤 My Profile & Earnings":
                     cursor.execute("DELETE FROM videos WHERE id = ?", (mv["id"],))
                     conn.commit()
                     conn.close()
-                    st.toast("ভিডিও মুছে ফেলা হয়েছে!")
+                    st.toast("Video deleted successfully!")
                     st.rerun()
 
         conn.close()
@@ -702,17 +711,17 @@ elif tab == "👤 My Profile & Earnings":
 # Upload Section
 elif tab == "📤 Create Post / Upload":
     if not st.session_state.user:
-        st.warning("Please login to create a post or upload.")
+        st.warning("Please login to create a post or upload content.")
     else:
         st.subheader("📤 Upload Content")
 
         # Guidelines Box
         st.warning(
-            "⚠️ **Community Guidelines:** সেক্সুয়াল, অ্যাডাল্ট, বা ভায়োলেন্স কনটেন্ট সম্পূর্ণ নিষিদ্ধ। নিয়ম ভঙ্গ করলে অ্যাকাউন্ট ব্লক ও মনিটাইজেশন বাতিল করা হবে।"
+            "⚠️ **Community Guidelines:** Sexual, adult, or violent content is strictly prohibited. Violating terms will lead to immediate account suspension and loss of earnings."
         )
 
         upload_type = st.radio(
-            "আপলোডের ধরণ নির্বাচন করুন:",
+            "Select Upload Type:",
             ["📝 Post/Photo", "🎥 Long Video", "📱 Short Video"],
         )
 
@@ -724,7 +733,7 @@ elif tab == "📤 Create Post / Upload":
 
             if st.button("🚀 Publish Post"):
                 if not post_text and not img_file:
-                    st.warning("পোস্টে কিছু লিখুন অথবা ছবি যুক্ত করুন!")
+                    st.warning("Please enter text or attach an image!")
                 else:
                     img_path = None
                     if img_file:
@@ -754,16 +763,16 @@ elif tab == "📤 Create Post / Upload":
                     )
                     conn.commit()
                     conn.close()
-                    st.success("🎉 পোস্ট প্রকাশ করা হয়েছে!")
+                    st.success("🎉 Post published successfully!")
                     st.rerun()
 
         else:
-            v_title = st.text_input("ভিডিওর শিরোনাম/টাইটেল")
-            v_file = st.file_uploader("ভিডিও ফাইল নির্বাচন করুন (MP4)", type=["mp4"])
+            v_title = st.text_input("Video Title")
+            v_file = st.file_uploader("Select Video File (MP4)", type=["mp4"])
 
             if st.button("🚀 Upload Video"):
                 if not v_file or not v_title:
-                    st.warning("টাইটেল এবং ভিডিও ফাইল উভয়ই নিশ্চিত করুন!")
+                    st.warning("Please provide both video title and file!")
                 else:
                     v_path = os.path.join(VIDEO_DIR, f"v_{uuid.uuid4()}.mp4")
                     with open(v_path, "wb") as f:
@@ -795,5 +804,5 @@ elif tab == "📤 Create Post / Upload":
                     )
                     conn.commit()
                     conn.close()
-                    st.success("🎉 ভিডিও সফলভাবে আপলোড হয়েছে!")
+                    st.success("🎉 Video uploaded successfully!")
                     st.rerun()
