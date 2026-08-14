@@ -4,6 +4,8 @@ import os
 import random
 import sqlite3
 import uuid
+
+from google import genai
 from openai import OpenAI
 import streamlit as st
 import streamlit.components.v1 as components
@@ -26,15 +28,25 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# 2. OpenAI Setup (Streamlit Secrets থেকে Key পড়ে নেবে)
+# 2. API Setup (Streamlit Secrets থেকে Key পড়ে নেওয়া)
 OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY", ""))
 
-client = None
+# OpenAI Client Setup
+openai_client = None
 if OPENAI_API_KEY:
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
     except Exception:
-        client = None
+        openai_client = None
+
+# Gemini Client Setup
+gemini_client = None
+if GEMINI_API_KEY:
+    try:
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception:
+        gemini_client = None
 
 # 3. Local Storage and Database Setup
 DB_FILE = "local_storage.db"
@@ -305,7 +317,7 @@ st.markdown(
 
 st.title("BD AI book — Verified Social Network")
 
-# 6. Session State
+# 6. Session State Initialization
 if "user" not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -365,10 +377,11 @@ else:
         st.session_state.is_verified = 1
         st.rerun()
 
-# Navigation Tabs
+# Navigation Tabs (Gemini Assistant যুক্ত করা হলো)
 nav_tabs = [
     "🌍 World Feed",
     "📱 Scrolle Shorts Feed",
+    "✨ Google Gemini Assistant",
     "🤖 ChatGPT AI Assistant",
     "👤 My Profile & Earnings",
     "📤 Create Post / Upload",
@@ -555,6 +568,30 @@ elif tab == "📱 Scrolle Shorts Feed":
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
                     st.toast("Followed Creator!")
 
+# ✨ Google Gemini Assistant Section (প্রথমে দেওয়া কোডের সাথে মিল করে যুক্ত)
+elif tab == "✨ Google Gemini Assistant":
+    st.subheader("✨ Google Gemini Assistant")
+    st.caption("বাংলা ও ইংরেজি সহ যেকোনো প্রশ্ন করুন!")
+
+    if not GEMINI_API_KEY:
+        st.error("Gemini API Key সেট করা হয়নি! Streamlit Secrets-এ GEMINI_API_KEY সেট করুন।")
+    else:
+        user_input = st.text_input("এখানে আপনার প্রশ্ন লিখুন...", key="gemini_input")
+        
+        if user_input:
+            with st.spinner("উত্তর তৈরি হচ্ছে..."):
+                try:
+                    if gemini_client:
+                        response = gemini_client.models.generate_content(
+                            model="gemini-2.5-flash",
+                            contents=user_input,
+                        )
+                        st.write(response.text)
+                    else:
+                        st.error("Gemini ক্লায়েন্ট আরম্ভ করতে সমস্যা হয়েছে। API Key টি সঠিকভাবে পরীক্ষা করুন।")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
 # 🤖 ChatGPT AI Assistant Section
 elif tab == "🤖 ChatGPT AI Assistant":
     st.subheader("🤖 ChatGPT (OpenAI) AI Assistant")
@@ -575,10 +612,10 @@ elif tab == "🤖 ChatGPT AI Assistant":
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            if client:
+            if openai_client:
                 with st.spinner("ChatGPT উত্তর তৈরি করছে..."):
                     try:
-                        response = client.chat.completions.create(
+                        response = openai_client.chat.completions.create(
                             model="gpt-4o-mini",
                             messages=[
                                 {
@@ -596,7 +633,7 @@ elif tab == "🤖 ChatGPT AI Assistant":
                     except Exception as err:
                         st.error(f"OpenAI এরর: {err}")
             else:
-                st.error("OpenAI API Key সেট করা হয়নি! অনুগ্রহ করে Streamlit Secrets-এ OPENAI_API_KEY সেট করুন।")
+                st.error("OpenAI API Key সেট করা হয়নি! অনুগ্রহ করে Streamlit Secrets-এ OPENAI_API_KEY সেট করুন।")
 
 # 9. Profile Section
 elif tab == "👤 My Profile & Earnings":
