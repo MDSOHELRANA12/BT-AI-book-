@@ -13,6 +13,7 @@ import streamlit.components.v1 as components
 # 1. Page Configuration
 st.set_page_config(
     page_title="BD AI book — Verified Social Network",
+    page_icon="📖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -289,7 +290,23 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("BD AI book — Verified Social Network")
+# ==================== MAIN HEADER LOGO SECTION ====================
+if os.path.exists("logo.jpg"):
+    col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
+    with col_l2:
+        st.image("logo.jpg", use_container_width=True)
+else:
+    st.markdown(
+        """
+        <div style="text-align: center; padding: 10px 0;">
+            <h1 style="color: #00c853; font-weight: 900; margin: 0;">🔥 BD AI Book 🔥</h1>
+            <p style="color: #b0b3b8; margin: 0;">Artificial Intelligence & Learning Platform</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+st.divider()
 
 # Session State Initialization
 if "user" not in st.session_state:
@@ -300,7 +317,10 @@ if "user" not in st.session_state:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "🌍 World Feed"
 
-# Sidebar Authentication
+# Sidebar Authentication & Navigation Logo
+if os.path.exists("logo.jpg"):
+    st.sidebar.image("logo.jpg", use_container_width=True)
+
 st.sidebar.header("📸 Authentication")
 
 if not st.session_state.user:
@@ -541,9 +561,9 @@ elif tab == "📱 Scrolle Shorts Feed":
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
                     st.toast("Followed Creator!")
 
-# 💬 WhatsApp Support Desk (আপনার গোপন নম্বর সহ যুক্ত করা হয়েছে)
+# WhatsApp Support Desk
 elif tab == "💬 WhatsApp Support Desk":
-    st.subheader("💬 Official WhatsApp Support & Desk")
+    st.subheader("💬 Official WhatsApp Support Desk")
     st.caption("সরাসরি আমাদের সাথে কথা বলুন, প্রশ্ন করুন বা সমস্যা শেয়ার করুন।")
 
     HIDDEN_WA_NUMBER = "8801722003172"
