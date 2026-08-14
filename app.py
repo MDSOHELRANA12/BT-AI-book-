@@ -74,20 +74,6 @@ def init_db():
         )
     """)
 
-    # Check & Add Missing Columns to `users` if DB already exists
-    user_columns = [
-        ("followers_count", "INTEGER DEFAULT 0"),
-        ("watch_time_mins", "REAL DEFAULT 0.0"),
-        ("monetization_status", "TEXT DEFAULT 'none'"),
-        ("earnings", "REAL DEFAULT 0.0"),
-        ("id", "INTEGER"),
-    ]
-    for col_name, col_type in user_columns:
-        try:
-            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
-        except sqlite3.OperationalError:
-            pass  # Column already exists
-
     # Videos Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS videos (
@@ -106,19 +92,6 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
-
-    # Check & Add Missing Columns to `videos`
-    video_columns = [
-        ("user_id", "INTEGER"),
-        ("views_count", "INTEGER DEFAULT 0"),
-    ]
-    for col_name, col_type in video_columns:
-        try:
-            cursor.execute(
-                f"ALTER TABLE videos ADD COLUMN {col_name} {col_type}"
-            )
-        except sqlite3.OperationalError:
-            pass
 
     # Posts Table
     cursor.execute("""
@@ -183,28 +156,6 @@ def register_or_get_user(username):
         "monetization_status": user["monetization_status"] or "none",
         "earnings": user["earnings"] or 0.0,
     }
-
-
-def update_monetization_status(user_id, status):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "UPDATE users SET monetization_status = ? WHERE id = ?",
-        (status, user_id),
-    )
-    conn.commit()
-    conn.close()
-
-
-def add_followers(user_id, count=1):
-    conn = get_db_connection()
-    c = conn.cursor()
-    c.execute(
-        "UPDATE users SET followers_count = followers_count + ? WHERE id = ?",
-        (count, user_id),
-    )
-    conn.commit()
-    conn.close()
 
 
 def format_value(value):
@@ -609,7 +560,13 @@ if tab == "🌍 World Feed":
                     st.rerun()
             with c2:
                 if st.button("➕ Follow", key=f"fl_{item_id}_{index}"):
-                    st.toast("Followed successfully!")
+                    # অটোমেটিক ফলোয়ার সংখ্যা বৃদ্ধি
+                    cursor.execute(
+                        "UPDATE users SET followers_count = followers_count + 1 WHERE username = ?",
+                        (uploader_name,),
+                    )
+                    conn.commit()
+                    st.toast(f"Followed {uploader_name} successfully!")
 
             render_comments_section(item_id)
 
@@ -678,6 +635,14 @@ elif tab == "📱 Scrolle Shorts Feed":
                 st.caption(f"👁️ {format_value(sv.get('views', 0))}")
 
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE users SET followers_count = followers_count + 1 WHERE username = ?",
+                        (sv.get("uploader_name"),),
+                    )
+                    conn.commit()
+                    conn.close()
                     st.toast("Followed Creator!")
 
 # --- WhatsApp Support Desk ---
@@ -796,28 +761,51 @@ elif tab == "👤 My Profile & Earnings":
         display_name = user_info.get("full_name") or st.session_state.user
         pic_path = user_info.get("profile_pic", st.session_state.pic)
 
+        # -------------------------------------------------------------
+        # ৩০০ ফলোয়ার এবং ৩,০০০ ঘণ্টা ওয়াচ টাইমের অটোমেটিক শর্ত চেক
+        # -------------------------------------------------------------
+        followers = user_data_merged["followers_count"]
+        watch_hours = user_data_merged["watch_time_mins"] / 60.0
+
+        is_eligible = (followers >= 300) and (watch_hours >= 3000.0)
+
+        if is_eligible:
+            monetization_badge = "✅ Eligible & Active"
+            est_earnings = (
+                (total_views * 0.002)
+                + (total_likes * 0.005)
+                + user_data_merged["earnings"]
+            )
+        else:
+            monetization_badge = "🔒 Locked (Requirements not met)"
+            est_earnings = 0.00
+
         show_verified_profile(
             display_name,
             profile_pic_path=pic_path,
-            subtitle=f"Official Verified Creator | Status: {user_data_merged['monetization_status'].title()}",
+            subtitle=f"Creator | Monetization: {monetization_badge}",
             is_verified=True,
         )
 
         st.write(
-            f"📹 Videos/Shorts: **{len(my_videos)}** | 🖼️ Posts: **{len(my_posts)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}** | 👥 Followers: **{format_value(user_data_merged['followers_count'])}**"
+            f"📹 Videos/Shorts: **{len(my_videos)}** | 🖼️ Posts: **{len(my_posts)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}** | 👥 Followers: **{followers}/300**"
         )
 
-        est_earnings = (
-            (total_views * 0.002)
-            + (total_likes * 0.005)
-            + user_data_merged["earnings"]
-        )
+        # মনিটাইজেশন অগ্রগতি (Progress Bar)
+        st.markdown("#### 📊 Monetization Progress (Requirements: 300 Followers & 3000 Hours)")
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            st.write(f"👥 Followers Goal: **{followers}/300**")
+            st.progress(min(followers / 300.0, 1.0))
+        with col_p2:
+            st.write(f"⏱️ Watch Time Goal: **{watch_hours:.1f}/3000 Hours**")
+            st.progress(min(watch_hours / 3000.0, 1.0))
 
         st.markdown(
             f"""
             <div class="monetization-box">
                 <h3 style="margin:0; color:#fff;">🌐 Global Monetization Dashboard</h3>
-                <p style="margin: 5px 0;">✅ <b>Status: Active & Global Revenue Unlocked</b></p>
+                <p style="margin: 5px 0;"><b>Status: {monetization_badge}</b></p>
                 <h2 style="margin: 10px 0; color: #ffffff;">💰 Est. Earnings: ${est_earnings:.2f} USD</h2>
                 <p style="margin:0; font-size:12px;">Saved Method: <b>{user_info.get('payment_method', 'Not Set')}</b> ({user_info.get('account_details', 'N/A')})</p>
             </div>
@@ -902,44 +890,37 @@ elif tab == "📤 Create Post / Upload":
                     st.rerun()
 
         else:
+            # ভিডিও আপলোড সেকশন (Long Video & Short Video)
             v_title = st.text_input("Video Title")
-            v_file = st.file_uploader("Select Video File (MP4)", type=["mp4"])
+            v_file = st.file_uploader("Upload Video File (MP4)", type=["mp4", "mov", "avi"])
 
             if st.button("🚀 Upload Video"):
-                if not v_file or not v_title:
-                    st.warning("Please provide both video title and file!")
+                if not v_title or not v_file:
+                    st.warning("Please provide a title and select a video file!")
                 else:
-                    v_path = os.path.join(VIDEO_DIR, f"v_{uuid.uuid4()}.mp4")
+                    v_path = os.path.join(VIDEO_DIR, f"vid_{uuid.uuid4()}.mp4")
                     with open(v_path, "wb") as f:
                         f.write(v_file.getvalue())
 
-                    v_type = (
-                        "short" if upload_type == "📱 Short Video" else "long"
-                    )
+                    is_short = "short" if upload_type == "📱 Short Video" else "long"
                     today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-                    user_data_merged = register_or_get_user(
-                        st.session_state.user
-                    )
 
                     conn = get_db_connection()
                     cursor = conn.cursor()
                     cursor.execute(
                         """
-                        INSERT INTO videos (id, user_id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, views_count, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO videos (id, uploader_name, uploader_pic, video_url, video_type, title, likes, views, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             str(uuid.uuid4()),
-                            user_data_merged["id"],
-                            v_path,
                             st.session_state.user,
                             st.session_state.pic,
-                            v_type,
+                            v_path,
+                            is_short,
                             v_title,
-                            random.randint(10, 50),
-                            random.randint(50, 200),
-                            random.randint(50, 200),
+                            0,
+                            0,
                             today_str,
                         ),
                     )
