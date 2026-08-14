@@ -3,6 +3,7 @@ import uuid
 import random
 import os
 import sqlite3
+import base64
 from datetime import datetime
 import streamlit.components.v1 as components
 
@@ -20,7 +21,7 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# 2. Database & Directory Setup
+# 2. Local Storage and Database Setup
 DB_FILE = "local_storage.db"
 VIDEO_DIR = "stored_videos"
 PROFILE_DIR = "stored_profiles"
@@ -30,7 +31,7 @@ for folder in [VIDEO_DIR, PROFILE_DIR]:
         os.makedirs(folder)
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_FILE, check_check_same_thread=False) if hasattr(sqlite3, 'check_check_same_thread') else sqlite3.connect(DB_FILE, check_same_thread=False)
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -50,6 +51,14 @@ def init_db():
             created_at TEXT
         )
     ''')
+    
+    # Auto-Migration for existing databases
+    for col in ["full_name", "nid_number", "address"]:
+        try:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col} TEXT")
+        except Exception:
+            pass
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS videos (
             id TEXT PRIMARY KEY,
@@ -75,38 +84,39 @@ def format_value(value):
     if value >= 1000: return f"{value/1000:.1f}K"
     return str(value)
 
-# SVG Blue Tick (YouTube/TikTok/Facebook Style)
-BLUE_TICK_SVG = """
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-left: 5px;">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#1D9BF0"/>
-</svg>
-"""
+def get_image_base64(image_path):
+    if image_path and os.path.exists(image_path):
+        try:
+            with open(image_path, "rb") as img_file:
+                return base64.b64encode(img_file.read()).decode('utf-8')
+        except Exception:
+            return None
+    return None
 
-def render_profile_header(display_name, pic_url=None, is_verified=1, subtitle="Official Global Verified Creator"):
-    img_html = f'<img src="data:image/png;base64,{pic_url}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid #1D9BF0;">' if pic_url else '<div style="width:70px; height:70px; border-radius:50%; background:#e0e0e0; display:flex; align-items:center; justify-content:center; font-size:30px;">👤</div>'
-    badge_html = BLUE_TICK_SVG if is_verified else ""
-    
-    return f'''
-    <div style="display: flex; align-items: center; gap: 15px; background: #ffffff; padding: 15px; border-radius: 12px; border: 1px solid #e1e8ed; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-        <div>{img_html}</div>
-        <div>
-            <div style="display: flex; align-items: center; font-weight: 800; font-size: 22px; color: #0F1419; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                <span>{display_name}</span>
-                {badge_html}
-            </div>
-            <p style="color: #536471; font-size: 14px; margin: 2px 0 0 0; font-weight: 500;">🛡️ {subtitle}</p>
-        </div>
-    </div>
-    '''
+def show_verified_profile(display_name, profile_pic_path=None, subtitle="Official Global Verified Creator"):
+    b64_img = get_image_base64(profile_pic_path)
+    if b64_img:
+        img_html = f'<img src="data:image/jpeg;base64,{b64_img}" style="width:65px; height:65px; border-radius:50%; object-fit:cover; border:2px solid #1D9BF0;">'
+    else:
+        img_html = '<div style="width:65px; height:65px; border-radius:50%; background:#e0e0e0; display:flex; align-items:center; justify-content:center; font-size:28px;">👤</div>'
+
+    html_code = f"""<div style="display: flex; align-items: center; gap: 14px; background: #ffffff; padding: 14px; border-radius: 12px; border: 1px solid #e1e8ed; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 15px;">
+<div>{img_html}</div>
+<div>
+<div style="display: flex; align-items: center; font-weight: 800; font-size: 20px; color: #0f1419; font-family: sans-serif;">
+<span>{display_name}</span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-left: 6px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#1D9BF0"/></svg>
+</div>
+<div style="color: #1D9BF0; font-size: 13px; font-weight: 600; margin-top: 2px;">🛡️ {subtitle}</div>
+</div>
+</div>"""
+    st.markdown(html_code, unsafe_allow_html=True)
 
 def show_auto_moving_banner():
     ad_html = f"""
     <div style="text-align:center; margin: 15px 0;">
         <a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">
-            <div style="background: linear-gradient(90deg, #1877F2, #00c853); 
-                        color: #fff; padding: 14px; border-radius: 12px; 
-                        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-                        border: 2px solid #ffffff; font-family: sans-serif;">
+            <div style="background: linear-gradient(90deg, #1877F2, #00c853); color: #fff; padding: 14px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 2px solid #ffffff; font-family: sans-serif;">
                 <span style="font-size: 16px; font-weight: bold;">⚡ GLOBAL AUTOMATIC MONETIZATION ACTIVE ⚡</span><br>
                 <span style="font-size: 12px;">Click to Boost Earnings & Claim Reward Bonus!</span>
             </div>
@@ -115,17 +125,15 @@ def show_auto_moving_banner():
     """
     components.html(ad_html, height=100)
 
-# 4. Custom Global Styling (Fixing Invisibility and UI Bugs)
+# 4. Custom Styling (Input Text Color Fix & Clean Theme)
 st.markdown("""
     <style>
-    .stApp { background-color: #f7f9fa; color: #0f1419; }
+    .stApp { background-color: #f7f9fa; color: #000000; }
     
-    /* Input Field Fix for Visibility */
     div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div, div[data-baseweb="select"] > div {
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 1px solid #cccccc !important;
-        border-radius: 8px !important;
     }
     textarea, input {
         color: #000000 !important;
@@ -134,22 +142,21 @@ st.markdown("""
     
     .long-video-card {
         background: #ffffff;
-        border: 1px solid #e1e8ed;
-        border-radius: 16px;
-        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 14px;
+        padding: 18px;
         margin-bottom: 25px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.04);
     }
     .monetization-box {
         background: linear-gradient(135deg, #00b09b, #96c93d);
         color: white;
-        padding: 20px;
-        border-radius: 15px;
+        padding: 18px;
+        border-radius: 12px;
         margin-top: 15px;
         margin-bottom: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    .btn-direct { display: block; width: 100%; padding: 12px; margin: 8px 0; color: white !important; text-align: center; border-radius: 10px; font-weight: bold; text-decoration: none; font-size: 14px; }
+    .btn-direct { display: block; width: 100%; padding: 10px; margin: 6px 0; color: white !important; text-align: center; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 14px; }
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
     .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
     </style>
@@ -157,7 +164,7 @@ st.markdown("""
 
 st.title("🛡️ BT AI Book — Verified Network")
 
-# 5. Session State Initialization
+# 5. Session State
 if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
@@ -204,7 +211,7 @@ else:
     if st.session_state.pic and os.path.exists(st.session_state.pic):
         st.sidebar.image(st.session_state.pic, width=90)
     
-    st.sidebar.markdown(f"Welcome, **{st.session_state.user}**", unsafe_allow_html=True)
+    st.sidebar.markdown(f"Welcome, **{st.session_state.user}**")
     if st.sidebar.button("Logout"):
         st.session_state.user = None
         st.session_state.pic = None
@@ -213,7 +220,7 @@ else:
 
 tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "👤 My Profile & Earnings", "📤 Upload Video"])
 
-# 7. World Feed Section
+# 7. World Feed
 if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -230,13 +237,12 @@ if tab == "🌍 World Feed":
             v_id = str(v['id'])
             v_type = v.get("video_type", "long")
             uploader_name = v.get("uploader_name", "Unknown User")
+            uploader_pic = v.get("uploader_pic", None)
             
             st.markdown('<div class="long-video-card">', unsafe_allow_html=True)
             
-            # Render Verified Creator Header
-            user_header = render_profile_header(uploader_name, pic_url=None, is_verified=1, subtitle=f"Format: {v_type.upper()}")
-            st.markdown(user_header, unsafe_allow_html=True)
-            st.write("")
+            # Show Verified User Header
+            show_verified_profile(uploader_name, profile_pic_path=uploader_pic, subtitle=f"Format: {v_type.upper()}")
             
             if v.get("title"):
                 st.markdown(f"#### {v.get('title')}")
@@ -244,9 +250,8 @@ if tab == "🌍 World Feed":
             if os.path.exists(v['video_url']):
                 st.video(v['video_url'])
             else:
-                st.error("Video file lost.")
+                st.error("Video file not found.")
             
-            # Stats Update
             new_views = v.get("views", 0) + 1
             cursor.execute("UPDATE videos SET views = ? WHERE id = ?", (new_views, v_id))
             conn.commit()
@@ -277,16 +282,17 @@ if tab == "🌍 World Feed":
     finally:
         conn.close()
 
-# 8. Profile, Earnings & Account Settings Tab
+# 8. Profile Section
 elif tab == "👤 My Profile & Earnings":
     if not st.session_state.user:
-        st.warning("Please login to access your profile.")
+        st.warning("Please login to view your profile.")
     else:
         conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("SELECT * FROM users WHERE username = ?", (st.session_state.user,))
-        user_info = cursor.fetchone()
+        raw_user = cursor.fetchone()
+        user_info = dict(raw_user) if raw_user else {}
         
         cursor.execute("SELECT * FROM videos WHERE uploader_name = ?", (st.session_state.user,))
         my_videos = [dict(r) for r in cursor.fetchall()]
@@ -294,23 +300,22 @@ elif tab == "👤 My Profile & Earnings":
         total_likes = sum([v.get("likes", 0) for v in my_videos])
         total_views = sum([v.get("views", 0) for v in my_videos])
         
-        # Original Verification Badge Header
-        display_name = user_info['full_name'] if user_info and user_info['full_name'] else st.session_state.user
-        st.markdown(render_profile_header(display_name, pic_url=None, is_verified=1), unsafe_allow_html=True)
-        st.write("")
+        # Display Name & Verified Badge with Face Photo
+        display_name = user_info.get('full_name') if user_info.get('full_name') else st.session_state.user
+        pic_path = user_info.get('profile_pic', st.session_state.pic)
         
-        st.write(f"📹 Uploaded Videos: **{len(my_videos)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Total Views: **{format_value(total_views)}**")
+        show_verified_profile(display_name, profile_pic_path=pic_path, subtitle="Official Verified Creator")
+        
+        st.write(f"📹 Uploads: **{len(my_videos)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}**")
 
-        # Monetization Dashboard
         st.markdown(f'''
             <div class="monetization-box">
-                <h3 style="margin:0;">🌐 Global Monetization Dashboard</h3>
+                <h3 style="margin:0; color:#fff;">🌐 Global Monetization Dashboard</h3>
                 <p style="margin: 5px 0;">✅ <b>Status: Active & Global Revenue Unlocked</b></p>
                 <h2 style="margin: 10px 0; color: #ffffff;">💰 Est. Earnings: ${(total_views * 0.002) + (total_likes * 0.005):.2f} USD</h2>
             </div>
         ''', unsafe_allow_html=True)
 
-        # Tabs inside Profile
         p_tab1, p_tab2, p_tab3 = st.tabs(["💳 Payout Methods", "⚙️ Account & NID Settings", "🎥 Manage Videos"])
         
         with p_tab1:
@@ -323,7 +328,7 @@ elif tab == "👤 My Profile & Earnings":
                     "PayPal / Crypto (USDT)"
                 ], index=0)
                 
-                curr_details = user_info['account_details'] if user_info and user_info['account_details'] else ""
+                curr_details = user_info.get('account_details', '') or ''
                 acc_info = st.text_area("Account Details (Card Number, Bank Name, Account No, IBAN or Mobile Number)", value=curr_details)
                 
                 submit_pay = st.form_submit_button("💾 Save Payment Settings")
@@ -335,11 +340,11 @@ elif tab == "👤 My Profile & Earnings":
                     st.rerun()
 
         with p_tab2:
-            st.subheader("⚙️ Identity & Profile Settings (NID Verification)")
+            st.subheader("⚙️ Identity & Profile Settings")
             with st.form("profile_settings_form"):
-                full_name_input = st.text_input("Full Name (English / As per NID)", value=user_info['full_name'] if user_info and user_info['full_name'] else "")
-                nid_input = st.text_input("NID Card Number", value=user_info['nid_number'] if user_info and user_info['nid_number'] else "")
-                address_input = st.text_area("Address (Bangladesh / Local Address)", value=user_info['address'] if user_info and user_info['address'] else "")
+                full_name_input = st.text_input("Full Name (English / As per NID)", value=user_info.get('full_name', '') or '')
+                nid_input = st.text_input("NID Card Number", value=user_info.get('nid_number', '') or '')
+                address_input = st.text_area("Address (Bangladesh / Local Address)", value=user_info.get('address', '') or '')
                 
                 save_profile = st.form_submit_button("💾 Update Profile Data")
                 if save_profile:
@@ -361,7 +366,6 @@ elif tab == "👤 My Profile & Earnings":
                         if os.path.exists(mv['video_url']):
                             st.video(mv['video_url'])
                     with col_del:
-                        st.write("")
                         st.write("")
                         if st.button("🗑️ Delete Video", key=f"del_{mv['id']}"):
                             if os.path.exists(mv['video_url']):
