@@ -8,7 +8,7 @@ from datetime import datetime
 import streamlit.components.v1 as components
 
 # 1. Page Configuration
-st.set_page_config(page_title="BT AI Book — Verified Network", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Freeder — BT AI Network", layout="wide", initial_sidebar_state="expanded")
 
 # Meta Tags & Monetization Scripts
 components.html(
@@ -24,9 +24,10 @@ SMART_LINK = "https://omg10.com/4/10954816"
 # 2. Local Storage and Database Setup
 DB_FILE = "local_storage.db"
 VIDEO_DIR = "stored_videos"
+IMAGE_DIR = "stored_images"
 PROFILE_DIR = "stored_profiles"
 
-for folder in [VIDEO_DIR, PROFILE_DIR]:
+for folder in [VIDEO_DIR, IMAGE_DIR, PROFILE_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -73,6 +74,18 @@ def init_db():
             created_at TEXT
         )
     ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS posts (
+            id TEXT PRIMARY KEY,
+            uploader_name TEXT,
+            uploader_pic TEXT,
+            content TEXT,
+            image_url TEXT,
+            likes INTEGER DEFAULT 0,
+            created_at TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -96,18 +109,18 @@ def get_image_base64(image_path):
 def show_verified_profile(display_name, profile_pic_path=None, subtitle="Official Global Verified Creator"):
     b64_img = get_image_base64(profile_pic_path)
     if b64_img:
-        img_html = f'<img src="data:image/jpeg;base64,{b64_img}" style="width:65px; height:65px; border-radius:50%; object-fit:cover; border:2px solid #1D9BF0;">'
+        img_html = f'<img src="data:image/jpeg;base64,{b64_img}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #00c853;">'
     else:
-        img_html = '<div style="width:65px; height:65px; border-radius:50%; background:#e0e0e0; display:flex; align-items:center; justify-content:center; font-size:28px;">👤</div>'
+        img_html = '<div style="width:50px; height:50px; border-radius:50%; background:#2a2a2a; color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px;">👤</div>'
 
-    html_code = f"""<div style="display: flex; align-items: center; gap: 14px; background: #ffffff; padding: 14px; border-radius: 12px; border: 1px solid #e1e8ed; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 15px;">
+    html_code = f"""<div style="display: flex; align-items: center; gap: 12px; background: #18191a; padding: 12px; border-radius: 12px; border: 1px solid #2d2f31; margin-bottom: 12px;">
 <div>{img_html}</div>
 <div>
-<div style="display: flex; align-items: center; font-weight: 800; font-size: 20px; color: #0f1419; font-family: sans-serif;">
+<div style="display: flex; align-items: center; font-weight: 700; font-size: 17px; color: #e4e6eb; font-family: sans-serif;">
 <span>{display_name}</span>
-<svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-left: 6px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#1D9BF0"/></svg>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin-left: 6px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#00c853"/></svg>
 </div>
-<div style="color: #1D9BF0; font-size: 13px; font-weight: 600; margin-top: 2px;">🛡️ {subtitle}</div>
+<div style="color: #b0b3b8; font-size: 12px; margin-top: 1px;">{subtitle}</div>
 </div>
 </div>"""
     st.markdown(html_code, unsafe_allow_html=True)
@@ -116,38 +129,48 @@ def show_auto_moving_banner():
     ad_html = f"""
     <div style="text-align:center; margin: 15px 0;">
         <a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">
-            <div style="background: linear-gradient(90deg, #1877F2, #00c853); color: #fff; padding: 14px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 2px solid #ffffff; font-family: sans-serif;">
-                <span style="font-size: 16px; font-weight: bold;">⚡ GLOBAL AUTOMATIC MONETIZATION ACTIVE ⚡</span><br>
+            <div style="background: linear-gradient(90deg, #1877F2, #00c853); color: #fff; padding: 14px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 1px solid #3a3b3c; font-family: sans-serif;">
+                <span style="font-size: 15px; font-weight: bold;">⚡ GLOBAL AUTOMATIC MONETIZATION ACTIVE ⚡</span><br>
                 <span style="font-size: 12px;">Click to Boost Earnings & Claim Reward Bonus!</span>
             </div>
         </a>
     </div>
     """
-    components.html(ad_html, height=100)
+    components.html(ad_html, height=95)
 
-# 4. Custom Styling (Input Text Color Fix & Clean Theme)
+# 4. Custom Styling (Dark UI Theme like Screenshots)
 st.markdown("""
     <style>
-    .stApp { background-color: #f7f9fa; color: #000000; }
+    .stApp { background-color: #121212; color: #e4e6eb; }
     
     div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div, div[data-baseweb="select"] > div {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-        border: 1px solid #cccccc !important;
+        background-color: #242526 !important;
+        color: #ffffff !important;
+        border: 1px solid #3a3b3c !important;
     }
     textarea, input {
-        color: #000000 !important;
-        background-color: #ffffff !important;
+        color: #ffffff !important;
+        background-color: #242526 !important;
     }
     
-    .long-video-card {
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
+    .feed-card {
+        background: #18191a;
+        border: 1px solid #2d2f31;
         border-radius: 14px;
-        padding: 18px;
-        margin-bottom: 25px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+        padding: 16px;
+        margin-bottom: 20px;
     }
+    
+    .scrolle-header {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1877F2;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
     .monetization-box {
         background: linear-gradient(135deg, #00b09b, #96c93d);
         color: white;
@@ -162,7 +185,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🛡️ BT AI Book — Verified Network")
+st.title("Freeder — Verified Social Network")
 
 # 5. Session State
 if 'user' not in st.session_state:
@@ -218,47 +241,75 @@ else:
         st.session_state.is_verified = 1
         st.rerun()
 
-tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "👤 My Profile & Earnings", "📤 Upload Video"])
+tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "👤 My Profile & Earnings", "📤 Create Post / Upload"])
 
 # 7. World Feed
 if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # --- Top Scrolle (Shorts Video) Section ---
     try:
-        cursor.execute("SELECT * FROM videos")
-        rows = cursor.fetchall()
-        data = [dict(row) for row in rows]
-        random.shuffle(data)
+        cursor.execute("SELECT * FROM videos WHERE video_type = 'short'")
+        short_videos = [dict(r) for r in cursor.fetchall()]
         
-        if not data:
-            st.info("No videos uploaded yet.")
+        if short_videos:
+            st.markdown('<div class="scrolle-header">▶️ Scrolle Shorts</div>', unsafe_allow_html=True)
+            cols = st.columns(min(len(short_videos), 3))
+            for i, sv in enumerate(short_videos[:3]):
+                with cols[i]:
+                    st.markdown(f"**{sv.get('uploader_name', 'User')}** ✔️")
+                    if os.path.exists(sv['video_url']):
+                        st.video(sv['video_url'])
+                    st.caption(f"👁️ {format_value(sv.get('views', 0))} views")
+            st.divider()
+    except Exception as e:
+        pass
 
-        for index, v in enumerate(data):
-            v_id = str(v['id'])
-            v_type = v.get("video_type", "long")
-            uploader_name = v.get("uploader_name", "Unknown User")
-            uploader_pic = v.get("uploader_pic", None)
+    # --- Posts & Video Feed ---
+    try:
+        cursor.execute("SELECT * FROM videos WHERE video_type != 'short'")
+        videos = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.execute("SELECT * FROM posts")
+        posts = [dict(row) for row in cursor.fetchall()]
+        
+        combined_feed = videos + posts
+        random.shuffle(combined_feed)
+        
+        if not combined_feed:
+            st.info("No feeds uploaded yet.")
+
+        for index, item in enumerate(combined_feed):
+            item_id = str(item['id'])
+            uploader_name = item.get("uploader_name", "Unknown User")
+            uploader_pic = item.get("uploader_pic", None)
+            created_at = item.get("created_at", "Recently")
             
-            st.markdown('<div class="long-video-card">', unsafe_allow_html=True)
+            st.markdown('<div class="feed-card">', unsafe_allow_html=True)
+            show_verified_profile(uploader_name, profile_pic_path=uploader_pic, subtitle=f"Posted {created_at}")
             
-            # Show Verified User Header
-            show_verified_profile(uploader_name, profile_pic_path=uploader_pic, subtitle=f"Format: {v_type.upper()}")
-            
-            if v.get("title"):
-                st.markdown(f"#### {v.get('title')}")
-            
-            if os.path.exists(v['video_url']):
-                st.video(v['video_url'])
-            else:
-                st.error("Video file not found.")
-            
-            new_views = v.get("views", 0) + 1
-            cursor.execute("UPDATE videos SET views = ? WHERE id = ?", (new_views, v_id))
-            conn.commit()
+            # Text Post Content
+            if "content" in item and item["content"]:
+                st.markdown(f"### {item['content']}")
+                
+            # Image Post Content
+            if "image_url" in item and item["image_url"] and os.path.exists(item["image_url"]):
+                st.image(item["image_url"], use_container_width=True)
+                
+            # Video Content
+            if "video_url" in item and os.path.exists(item['video_url']):
+                if item.get("title"):
+                    st.markdown(f"#### {item.get('title')}")
+                st.video(item['video_url'])
+                
+                new_views = item.get("views", 0) + 1
+                cursor.execute("UPDATE videos SET views = ? WHERE id = ?", (new_views, item_id))
+                conn.commit()
 
             show_auto_moving_banner()
 
-            st.write(f"👁️ **{format_value(new_views)}** Views | ❤️ **{format_value(v.get('likes', 0))}** Likes")
+            st.write(f"❤️ **{format_value(item.get('likes', 0))}** Likes")
             st.markdown(f'''
                 <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-1">💰 Claim Monetization Reward</a>
                 <a href="{SMART_LINK}" target="_blank" class="btn-direct bg-2">💎 Premium Bonus Link</a>
@@ -266,15 +317,14 @@ if tab == "🌍 World Feed":
             
             c1, c2 = st.columns(2)
             with c1:
-                if st.button(f"❤️ Like ({format_value(v.get('likes', 0))})", key=f"lk_{v_id}_{index}"):
-                    cursor.execute("UPDATE videos SET likes = likes + 1 WHERE id = ?", (v_id,))
+                if st.button(f"❤️ Like ({format_value(item.get('likes', 0))})", key=f"lk_{item_id}_{index}"):
+                    table_name = "posts" if "content" in item else "videos"
+                    cursor.execute(f"UPDATE {table_name} SET likes = likes + 1 WHERE id = ?", (item_id,))
                     conn.commit()
                     st.rerun()
             with c2:
-                if st.button(f"➕ Follow", key=f"fl_{v_id}_{index}"):
-                    cursor.execute("UPDATE videos SET followers = followers + 1 WHERE id = ?", (v_id,))
-                    conn.commit()
-                    st.rerun()
+                if st.button(f"➕ Follow", key=f"fl_{item_id}_{index}"):
+                    st.toast("Followed successfully!")
                     
             st.markdown('</div>', unsafe_allow_html=True)
     except Exception as e:
@@ -300,7 +350,6 @@ elif tab == "👤 My Profile & Earnings":
         total_likes = sum([v.get("likes", 0) for v in my_videos])
         total_views = sum([v.get("views", 0) for v in my_videos])
         
-        # Display Name & Verified Badge with Face Photo
         display_name = user_info.get('full_name') if user_info.get('full_name') else st.session_state.user
         pic_path = user_info.get('profile_pic', st.session_state.pic)
         
@@ -316,7 +365,7 @@ elif tab == "👤 My Profile & Earnings":
             </div>
         ''', unsafe_allow_html=True)
 
-        p_tab1, p_tab2, p_tab3 = st.tabs(["💳 Payout Methods", "⚙️ Account & NID Settings", "🎥 Manage Videos"])
+        p_tab1, p_tab2, p_tab3 = st.tabs(["💳 Payout Methods", "⚙️ Account & NID Settings", "🎥 Manage Content"])
         
         with p_tab1:
             st.subheader("💳 Global Bank & Payment Setup")
@@ -355,7 +404,7 @@ elif tab == "👤 My Profile & Earnings":
                     st.rerun()
 
         with p_tab3:
-            st.subheader("🎥 Manage & Delete Videos")
+            st.subheader("🎥 Manage Videos")
             if not my_videos:
                 st.info("No uploaded videos found.")
             else:
@@ -366,65 +415,83 @@ elif tab == "👤 My Profile & Earnings":
                         if os.path.exists(mv['video_url']):
                             st.video(mv['video_url'])
                     with col_del:
-                        st.write("")
-                        if st.button("🗑️ Delete Video", key=f"del_{mv['id']}"):
+                        if st.button("🗑️ Delete", key=f"del_{mv['id']}"):
                             if os.path.exists(mv['video_url']):
                                 os.remove(mv['video_url'])
                             cursor.execute("DELETE FROM videos WHERE id = ?", (mv['id'],))
                             conn.commit()
-                            st.success("Video Deleted!")
+                            st.success("Deleted!")
                             st.rerun()
                     st.divider()
 
         conn.close()
 
-# 9. Upload Video Section
-elif tab == "📤 Upload Video":
+# 9. Upload & Post Creation Section
+elif tab == "📤 Create Post / Upload":
     if not st.session_state.user:
-        st.warning("Please login to upload videos.")
+        st.warning("Please login to create a post or upload.")
     else:
-        st.subheader("📤 Upload New Video")
-        v_title = st.text_input("Video Title")
-        v_type = st.selectbox("Video Type", ["Long Video", "Short Video"])
-        file = st.file_uploader("Select MP4 Video File", type=['mp4'])
+        post_type = st.radio("Choose What to Share", ["📝 Photo & Text Post", "🎥 Video / Scrolle Shorts"])
         
-        if st.button("🚀 Publish Video") and file:
-            today = datetime.now().strftime("%Y-%m-%d")
-            conn = get_db_connection()
-            cursor = conn.cursor()
+        if post_type == "📝 Photo & Text Post":
+            st.subheader("📝 Create Facebook-Style Post")
+            post_text = st.text_area("What's on your mind?")
+            img_file = st.file_uploader("Upload Photo (JPG/PNG)", type=['jpg', 'png', 'jpeg'])
             
-            cursor.execute("SELECT * FROM videos WHERE uploader_name = ? AND created_at >= ?", (st.session_state.user, today))
-            check_data = cursor.fetchall()
-            
-            if check_data and len(check_data) >= 5:
-                st.error("Upload limit reached! Max 5 videos per day.")
+            if st.button("🚀 Publish Post"):
+                img_path = None
+                if img_file:
+                    img_path = os.path.join(IMAGE_DIR, f"img_{uuid.uuid4()}.jpg")
+                    with open(img_path, "wb") as f:
+                        f.write(img_file.getvalue())
+                        
+                today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO posts (id, uploader_name, uploader_pic, content, image_url, likes, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (str(uuid.uuid4()), st.session_state.user, st.session_state.pic, post_text, img_path, random.randint(5, 20), today_str))
+                conn.commit()
                 conn.close()
-            else:
-                with st.spinner("Publishing video..."):
-                    v_id = str(uuid.uuid4())
-                    v_name = os.path.join(VIDEO_DIR, f"v_{v_id}.mp4")
-                    
-                    with open(v_name, "wb") as f_dst:
-                        f_dst.write(file.getvalue())
-                    
-                    video_kind = "long" if "Long" in v_type else "short"
-                    
-                    cursor.execute("""
-                        INSERT INTO videos (id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, followers, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        v_id, 
-                        v_name, 
-                        st.session_state.user,
-                        st.session_state.pic, 
-                        video_kind,
-                        v_title if v_title else "Untitled Video",
-                        random.randint(10, 50), 
-                        1, 
-                        random.randint(5, 30),
-                        today
-                    ))
-                    conn.commit()
-                    conn.close()
-                    st.success("🎉 Video Uploaded Successfully!")
-                    st.rerun()
+                st.success("🎉 Post Published Successfully!")
+                st.rerun()
+                
+        else:
+            st.subheader("📤 Upload Video or Scrolle Shorts")
+            v_title = st.text_input("Video Title")
+            v_type = st.selectbox("Video Format", ["Long Video", "Scrolle Short Video"])
+            file = st.file_uploader("Select MP4 Video File", type=['mp4'])
+            
+            if st.button("🚀 Publish Video") and file:
+                today = datetime.now().strftime("%Y-%m-%d")
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                
+                v_id = str(uuid.uuid4())
+                v_name = os.path.join(VIDEO_DIR, f"v_{v_id}.mp4")
+                
+                with open(v_name, "wb") as f_dst:
+                    f_dst.write(file.getvalue())
+                
+                video_kind = "short" if "Short" in v_type else "long"
+                
+                cursor.execute("""
+                    INSERT INTO videos (id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, followers, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    v_id, 
+                    v_name, 
+                    st.session_state.user,
+                    st.session_state.pic, 
+                    video_kind,
+                    v_title if v_title else "Untitled Video",
+                    random.randint(10, 50), 
+                    1, 
+                    random.randint(5, 30),
+                    today
+                ))
+                conn.commit()
+                conn.close()
+                st.success("🎉 Video Uploaded Successfully!")
+                st.rerun()
