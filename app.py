@@ -32,7 +32,7 @@ for folder in [VIDEO_DIR, IMAGE_DIR, PROFILE_DIR]:
         os.makedirs(folder)
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+    conn = sqlite3.connect(DB_FILE, check_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -137,7 +137,7 @@ def show_auto_moving_banner():
     """
     components.html(ad_html, height=95)
 
-# 4. Custom Styling (Dark UI Theme)
+# 4. Custom Styling (Dark UI & Full TikTok Player Styling)
 st.markdown("""
     <style>
     .stApp { background-color: #121212; color: #e4e6eb; }
@@ -182,19 +182,20 @@ st.markdown("""
     .bg-1 { background: linear-gradient(135deg, #FF416C, #FF4B2B); }
     .bg-2 { background: linear-gradient(135deg, #1DE9B6, #26A69A); }
 
-    /* Shorts Full-screen Scroll Layout */
-    .shorts-container {
-        height: 80vh;
+    /* TikTok Full Feed Container Style */
+    .tiktok-container {
+        height: 85vh;
         overflow-y: scroll;
         scroll-snap-type: y mandatory;
         border-radius: 16px;
-        max-width: 450px;
+        max-width: 420px;
         margin: 0 auto;
         background: #000;
+        border: 2px solid #333;
     }
-    .short-card {
+    .tiktok-card {
         scroll-snap-align: start;
-        height: 80vh;
+        height: 85vh;
         position: relative;
         display: flex;
         flex-direction: column;
@@ -202,11 +203,6 @@ st.markdown("""
         align-items: center;
         background: #000;
         border-bottom: 2px solid #222;
-    }
-    .short-video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -218,6 +214,9 @@ if 'user' not in st.session_state:
     st.session_state.user = None
     st.session_state.pic = None
     st.session_state.is_verified = 1
+
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = "🌍 World Feed"
 
 # 6. Sidebar: Authentication
 st.sidebar.header("📸 Authentication")
@@ -267,33 +266,43 @@ else:
         st.session_state.is_verified = 1
         st.rerun()
 
-# --- Navigation tab selection updated to include Scrolle Shorts Feed ---
-tab = st.sidebar.radio("Navigation", ["🌍 World Feed", "📱 Scrolle Shorts Feed", "👤 My Profile & Earnings", "📤 Create Post / Upload"])
+# Dynamic Navigation Menu
+tab = st.sidebar.radio(
+    "Navigation", 
+    ["🌍 World Feed", "📱 Scrolle Shorts Feed", "👤 My Profile & Earnings", "📤 Create Post / Upload"],
+    index=["🌍 World Feed", "📱 Scrolle Shorts Feed", "👤 My Profile & Earnings", "📤 Create Post / Upload"].index(st.session_state.active_tab)
+)
+st.session_state.active_tab = tab
 
 # 7. World Feed
 if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # --- Top Scrolle (Shorts Video) Preview Section ---
+    # --- Top Scrolle Shorts Section (Clicking opens Shorts Feed) ---
     try:
-        cursor.execute("SELECT * FROM videos WHERE video_type = 'short'")
+        cursor.execute("SELECT * FROM videos WHERE video_type = 'short' ORDER BY created_at DESC")
         short_videos = [dict(r) for r in cursor.fetchall()]
         
         if short_videos:
-            st.markdown('<div class="scrolle-header">▶️ Scrolle Shorts</div>', unsafe_allow_html=True)
+            st.markdown('<div class="scrolle-header">▶️ Scrolle Shorts (Click to Watch Fullscreen Feed)</div>', unsafe_allow_html=True)
             cols = st.columns(min(len(short_videos), 3))
             for i, sv in enumerate(short_videos[:3]):
                 with cols[i]:
                     st.markdown(f"**{sv.get('uploader_name', 'User')}** ✔️")
                     if os.path.exists(sv['video_url']):
                         st.video(sv['video_url'], format="video/mp4")
+                    
+                    # 🔴 ক্লিক করলেই সরাসরি TikTok Shorts Feed-এ চলে যাবে!
+                    if st.button(f"▶️ Watch in Shorts Feed", key=f"open_short_{sv['id']}"):
+                        st.session_state.active_tab = "📱 Scrolle Shorts Feed"
+                        st.rerun()
                     st.caption(f"👁️ {format_value(sv.get('views', 0))} views")
             st.divider()
     except Exception as e:
         pass
 
-    # --- Posts & Video Feed ---
+    # --- Posts & Long Video Feed ---
     try:
         cursor.execute("SELECT * FROM videos WHERE video_type != 'short'")
         videos = [dict(row) for row in cursor.fetchall()]
@@ -356,9 +365,9 @@ if tab == "🌍 World Feed":
     finally:
         conn.close()
 
-# 📱 --- NEW: Scrolle Shorts Full Feed (TikTok/Shorts Style Vertical Scroll) ---
+# 📱 --- FULL TIKTOK / SHORTS STYLE SCROLL FEED ---
 elif tab == "📱 Scrolle Shorts Feed":
-    st.subheader("📱 Scrolle Shorts")
+    st.subheader("📱 TikTok & Shorts Vertical Scroll Feed")
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM videos WHERE video_type = 'short' ORDER BY created_at DESC")
@@ -366,32 +375,46 @@ elif tab == "📱 Scrolle Shorts Feed":
     conn.close()
 
     if not short_vids:
-        st.info("কোনো শর্টস ভিডিও পাওয়া যায়নি। নতুন শর্টস আপলোড করুন!")
+        st.info("কোনো শর্টস ভিডিও পাওয়া যায়নি। 'Create Post / Upload' থেকে নতুন শর্টস আপলোড করুন!")
     else:
-        # Loop through short videos and present vertical player cards
+        # TikTok style scrolling layout for all short videos worldwide
         for idx, sv in enumerate(short_vids):
             st.markdown("---")
-            col_vid, col_actions = st.columns([3, 1])
-            with col_vid:
-                show_verified_profile(sv.get("uploader_name", "User"), profile_pic_path=sv.get("uploader_pic"), subtitle="Scrolle Creator")
+            col_main, col_side = st.columns([3, 1])
+            with col_main:
+                show_verified_profile(sv.get("uploader_name", "User"), profile_pic_path=sv.get("uploader_pic"), subtitle="Official Shorts Creator")
                 st.markdown(f"**{sv.get('title', 'Short Video')}**")
                 if os.path.exists(sv['video_url']):
                     st.video(sv['video_url'], format="video/mp4")
-            
-            with col_actions:
+                
+                # Auto count views
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("UPDATE videos SET views = views + 1 WHERE id = ?", (sv['id'],))
+                conn.commit()
+                conn.close()
+
+            with col_side:
                 st.write(" ")
                 st.write(" ")
-                if st.button(f"❤️ {format_value(sv.get('likes', 0))}", key=f"s_like_{sv['id']}"):
+                if st.button(f"❤️ {format_value(sv.get('likes', 0))}", key=f"sh_like_{sv['id']}"):
                     conn = get_db_connection()
                     cursor = conn.cursor()
                     cursor.execute("UPDATE videos SET likes = likes + 1 WHERE id = ?", (sv['id'],))
                     conn.commit()
                     conn.close()
+                    st.toast("Liked!")
                     st.rerun()
+                
                 st.caption(f"👁️ {format_value(sv.get('views', 0))}")
-                if st.button("➕ Follow", key=f"s_fol_{sv['id']}"):
-                    st.toast("Followed!")
-                st.markdown(f'<a href="{SMART_LINK}" target="_blank" style="text-decoration:none;">💰 Earn</a>', unsafe_allow_html=True)
+                
+                if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
+                    st.toast("Followed Creator!")
+                
+                if st.button("🔗 Share", key=f"sh_share_{sv['id']}"):
+                    st.toast("Link Copied!")
+                
+                st.markdown(f'<a href="{SMART_LINK}" target="_blank" style="text-decoration:none; font-weight:bold; color:#00c853;">💰 Earn</a>', unsafe_allow_html=True)
 
 # 8. Profile Section
 elif tab == "👤 My Profile & Earnings":
