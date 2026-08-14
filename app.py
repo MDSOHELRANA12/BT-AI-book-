@@ -26,8 +26,8 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# 2. Gemini AI Key & Setup
-GEMINI_API_KEY = "AIzaSyCpq007fwUU7LfqMVTQBl6WLbFI1yiZZ_g"
+# 2. Gemini AI Key & Setup (Updated with your API Key)
+GEMINI_API_KEY = "AQ.Ab8RN6K9M_tlKGr1XdHeMM8HKZZxbswva-cIp0bET3-n3AA3Kw"
 try:
     genai.configure(api_key=GEMINI_API_KEY)
     ai_model = genai.GenerativeModel("gemini-1.5-flash")
@@ -604,7 +604,16 @@ elif tab == "🤖 AI Assistant":
                             {"role": "assistant", "content": reply}
                         )
                     except Exception as err:
-                        st.error(f"AI সাইডে ত্রুটি ঘটেছে: {err}")
+                        try:
+                            fallback_model = genai.GenerativeModel("gemini-1.5-flash")
+                            response = fallback_model.generate_content(prompt)
+                            reply = response.text
+                            st.markdown(reply)
+                            st.session_state.ai_chat_messages.append(
+                                {"role": "assistant", "content": reply}
+                            )
+                        except Exception as fb_err:
+                            st.error(f"AI সাইডে ত্রুটি ঘটেছে: {fb_err}")
             else:
                 st.error("Gemini API Key সঠিক নয় বা নেটওয়ার্ক সমস্যা!")
 
@@ -751,7 +760,7 @@ elif tab == "👤 My Profile & Earnings":
 
         conn.close()
 
-# 10. Upload & Post Creation Section (Daily Limits & AI Safety Integration)
+# 10. Upload & Post Creation Section
 elif tab == "📤 Create Post / Upload":
     if not st.session_state.user:
         st.warning("Please login to create a post or upload.")
@@ -760,7 +769,6 @@ elif tab == "📤 Create Post / Upload":
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 📊 দৈনিক আপলোড গণনা চেক
         cursor.execute("SELECT COUNT(*) FROM posts WHERE uploader_name = ? AND SUBSTR(created_at, 1, 10) = ?", (st.session_state.user, today_date))
         today_posts_count = cursor.fetchone()[0]
 
@@ -778,7 +786,6 @@ elif tab == "📤 Create Post / Upload":
             ["📝 Photo & Text Post (দৈনিক ১০টি)", "🎥 Video / Scrolle Shorts (দৈনিক ১টি)"],
         )
 
-        # 1️⃣ ফটো ও টেক্সট পোস্ট সেকশন
         if "Photo & Text" in post_type:
             st.subheader("📝 Create Photo & Text Post")
             post_text = st.text_area("What's on your mind?")
@@ -786,11 +793,10 @@ elif tab == "📤 Create Post / Upload":
 
             if st.button("🚀 Publish Post"):
                 if today_posts_count >= 10:
-                    st.error("🛑 আপনার আজকের ১০টি পোস্ট করার লিমিট শেষ হয়ে গেছে! আবার আগামীকাল পোস্ট করতে পারবেন।")
+                    st.error("🛑 আপনার আজকের ১০টি পোস্ট করার লিমিট শেষ হয়ে গেছে!")
                 elif not post_text and not img_file:
                     st.warning("পোস্টে কিছু লিখুন অথবা ছবি যুক্ত করুন!")
                 else:
-                    # 🛡️ AI সেফটি ফিল্টার (পোস্টের খারাপ কন্টেন্ট চেক)
                     is_safe = True
                     if ai_model and post_text:
                         with st.spinner("🔍 AI পোস্টটি পরীক্ষা করছে..."):
@@ -803,7 +809,7 @@ elif tab == "📤 Create Post / Upload":
                                 is_safe = True
 
                     if not is_safe:
-                        st.error("❌ এই পোস্টে সেক্সুয়াল বা খারাপ কোনো বিষয়বস্তু শনাক্ত হয়েছে! আমাদের নিয়মানুযায়ী এই পোস্টটি পাবলিশ হতে পারবে না।")
+                        st.error("❌ এই পোস্টে সেক্সুয়াল বা খারাপ কোনো বিষয়বস্তু শনাক্ত হয়েছে!")
                     else:
                         img_path = None
                         if img_file:
@@ -834,7 +840,6 @@ elif tab == "📤 Create Post / Upload":
                         st.success("🎉 আপনার চমৎকার পোস্টটি নিরাপদে পাবলিশ হয়েছে!")
                         st.rerun()
 
-        # 2️⃣ ভিডিও আপলোড সেকশন (লং ও শর্ট ভিডিও লিমিট + সেফটি চেক)
         else:
             st.subheader("📤 Upload Video (AI Safety Protected)")
             v_title = st.text_input("Video Title")
@@ -844,15 +849,13 @@ elif tab == "📤 Create Post / Upload":
             if st.button("🚀 Publish Video"):
                 is_short = "short" if "Short" in v_type else "long"
                 
-                # সীমা চেক
                 if is_short == "short" and today_shorts_count >= 1:
-                    st.error("🛑 আপনি আজ ইতিমধ্যেই ১টি শর্টস ভিডিও আপলোড করেছেন! আগামী কাল আবার ট্রাই করুন।")
+                    st.error("🛑 আপনি আজ ইতিমধ্যেই ১টি শর্টস ভিডিও আপলোড করেছেন!")
                 elif is_short == "long" and today_long_count >= 1:
-                    st.error("🛑 আপনি আজ ইতিমধ্যেই ১টি লং ভিডিও আপলোড করেছেন! আগামী কাল আবার ট্রাই করুন।")
+                    st.error("🛑 আপনি আজ ইতিমধ্যেই ১টি লং ভিডিও আপলোড করেছেন!")
                 elif not file or not v_title:
                     st.warning("ভিডিও টাইটেল এবং MP4 ফাইল দুটোই নির্বাচন করুন!")
                 else:
-                    # AI Title Content Filter Check
                     is_safe = True
                     if ai_model and v_title:
                         with st.spinner("🔍 AI ভিডিওর টাইটেল পরীক্ষা করছে..."):
