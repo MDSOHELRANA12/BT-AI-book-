@@ -1,4 +1,5 @@
-import streamlit as stimport uuid
+import streamlit as st
+import uuid
 import random
 import os
 import sqlite3
