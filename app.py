@@ -294,9 +294,10 @@ def render_comments_section(post_id):
                         st.rerun()
                     else:
                         st.warning("Comment cannot be empty!")
+                        conn.close()
         else:
             st.info("Please log in to leave a comment.")
-        conn.close()
+            conn.close()
 
 
 # ==========================================
@@ -395,6 +396,7 @@ if not st.session_state.user:
                 st.session_state.is_verified = user_data["is_verified"]
                 conn.close()
                 st.rerun()
+            conn.close()
         else:
             if st.sidebar.button("✨ Create Account"):
                 fname = os.path.join(PROFILE_DIR, f"p_{uuid.uuid4()}.jpg")
@@ -560,7 +562,6 @@ if tab == "🌍 World Feed":
                     st.rerun()
             with c2:
                 if st.button("➕ Follow", key=f"fl_{item_id}_{index}"):
-                    # অটোমেটিক ফলোয়ার সংখ্যা বৃদ্ধি
                     cursor.execute(
                         "UPDATE users SET followers_count = followers_count + 1 WHERE username = ?",
                         (uploader_name,),
@@ -761,9 +762,6 @@ elif tab == "👤 My Profile & Earnings":
         display_name = user_info.get("full_name") or st.session_state.user
         pic_path = user_info.get("profile_pic", st.session_state.pic)
 
-        # -------------------------------------------------------------
-        # ৩০০ ফলোয়ার এবং ৩,০০০ ঘণ্টা ওয়াচ টাইমের অটোমেটিক শর্ত চেক
-        # -------------------------------------------------------------
         followers = user_data_merged["followers_count"]
         watch_hours = user_data_merged["watch_time_mins"] / 60.0
 
@@ -791,7 +789,6 @@ elif tab == "👤 My Profile & Earnings":
             f"📹 Videos/Shorts: **{len(my_videos)}** | 🖼️ Posts: **{len(my_posts)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}** | 👥 Followers: **{followers}/300**"
         )
 
-        # মনিটাইজেশন অগ্রগতি (Progress Bar)
         st.markdown("#### 📊 Monetization Progress (Requirements: 300 Followers & 3000 Hours)")
         col_p1, col_p2 = st.columns(2)
         with col_p1:
@@ -880,51 +877,64 @@ elif tab == "📤 Create Post / Upload":
                             st.session_state.pic,
                             post_text,
                             img_path,
-                            random.randint(5, 20),
+                            0,
                             today_str,
                         ),
                     )
                     conn.commit()
                     conn.close()
-                    st.success("🎉 Post published successfully!")
+                    st.toast("✅ Post published successfully!")
                     st.rerun()
 
         else:
-            # ভিডিও আপলোড সেকশন (Long Video & Short Video)
-            v_title = st.text_input("Video Title")
-            v_file = st.file_uploader("Upload Video File (MP4)", type=["mp4", "mov", "avi"])
+            # Handle Video / Shorts Uploads
+            v_title = st.text_input("Video Title", placeholder="Enter a title for your video...")
+            vid_file = st.file_uploader(
+                "Upload Video File (MP4/MOV)", type=["mp4", "mov", "avi", "mkv"]
+            )
 
-            if st.button("🚀 Upload Video"):
-                if not v_title or not v_file:
-                    st.warning("Please provide a title and select a video file!")
+            is_short = upload_type == "📱 Short Video"
+            v_type_str = "short" if is_short else "long"
+
+            if st.button("🚀 Publish Video"):
+                if not vid_file or not v_title.strip():
+                    st.warning("Please provide a video title and select a video file!")
                 else:
-                    v_path = os.path.join(VIDEO_DIR, f"vid_{uuid.uuid4()}.mp4")
-                    with open(v_path, "wb") as f:
-                        f.write(v_file.getvalue())
+                    vid_filename = f"vid_{uuid.uuid4()}.mp4"
+                    vid_path = os.path.join(VIDEO_DIR, vid_filename)
 
-                    is_short = "short" if upload_type == "📱 Short Video" else "long"
+                    with open(vid_path, "wb") as f:
+                        f.write(vid_file.getvalue())
+
+                    user_info_record = register_or_get_user(st.session_state.user)
                     today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
                     conn = get_db_connection()
                     cursor = conn.cursor()
                     cursor.execute(
                         """
-                        INSERT INTO videos (id, uploader_name, uploader_pic, video_url, video_type, title, likes, views, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO videos (
+                            id, user_id, video_url, uploader_name, uploader_pic, 
+                            video_type, title, likes, views, views_count, created_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             str(uuid.uuid4()),
+                            user_info_record["id"],
+                            vid_path,
                             st.session_state.user,
                             st.session_state.pic,
-                            v_path,
-                            is_short,
-                            v_title,
-                            0,
-                            0,
+                            v_type_str,
+                            v_title.strip(),
+                            random.randint(10, 50),
+                            1,
+                            1,
                             today_str,
                         ),
                     )
                     conn.commit()
                     conn.close()
-                    st.success("🎉 Video uploaded successfully!")
+
+                    st.toast(f"🎉 {upload_type} published successfully!")
                     st.rerun()
