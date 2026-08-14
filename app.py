@@ -4,7 +4,7 @@ import os
 import random
 import sqlite3
 import uuid
-import google.generativeai as genai
+from openai import OpenAI
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -26,13 +26,15 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# 2. Gemini AI Key & Setup (Updated with your API Key)
-GEMINI_API_KEY = "AQ.Ab8RN6K9M_tlKGr1XdHeMM8HKZZxbswva-cIp0bET3-n3AA3Kw"
-try:
-    genai.configure(api_key=GEMINI_API_KEY)
-    ai_model = genai.GenerativeModel("gemini-1.5-flash")
-except Exception as e:
-    ai_model = None
+# 2. OpenAI Setup (Streamlit Secrets থেকে Key পড়ে নেবে)
+OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
+
+client = None
+if OPENAI_API_KEY:
+    try:
+        client = OpenAI(api_key=OPENAI_API_KEY)
+    except Exception:
+        client = None
 
 # 3. Local Storage and Database Setup
 DB_FILE = "local_storage.db"
@@ -55,7 +57,6 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Users Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -76,7 +77,6 @@ def init_db():
         except Exception:
             pass
 
-    # Videos Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS videos (
             id TEXT PRIMARY KEY,
@@ -92,7 +92,6 @@ def init_db():
         )
     """)
 
-    # Posts Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS posts (
             id TEXT PRIMARY KEY,
@@ -105,7 +104,6 @@ def init_db():
         )
     """)
 
-    # Comments & Gifts Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS comments (
             id TEXT PRIMARY KEY,
@@ -182,8 +180,7 @@ def show_auto_moving_banner():
 
 
 def render_comments_section(post_id):
-    """Facebook Style Comment & Gift Component"""
-    with st.expander("💬 Comments & Gifts (কমেন্ট ও গিফট দেখুন)"):
+    with st.expander("💬 Comments & Gifts"):
         conn = get_db_connection()
         cursor = conn.cursor()
 
@@ -206,15 +203,17 @@ def render_comments_section(post_id):
                 )
                 st.markdown("---")
         else:
-            st.caption("এখনো কোনো কমেন্ট করা হয়নি। প্রথম কমেন্টটি আপনি করুন!")
+            st.caption("এখনো কোনো কমেন্ট করা হয়নি।")
 
         if st.session_state.user:
             with st.form(key=f"c_form_{post_id}"):
                 c_input = st.text_input(
-                    "কমেন্ট লিখুন...", key=f"inp_{post_id}", placeholder="আপনার মতামত..."
+                    "কমেন্ট লিখুন...",
+                    key=f"inp_{post_id}",
+                    placeholder="আপনার মতামত...",
                 )
                 gift_selected = st.selectbox(
-                    "🎁 গিফট সিলেক্ট করুন (ঐচ্ছিক)",
+                    "🎁 গিফট সিলেক্ট করুন",
                     [
                         "None",
                         "🎁 Gift Box (+10 pts)",
@@ -245,12 +244,12 @@ def render_comments_section(post_id):
                         )
                         conn.commit()
                         conn.close()
-                        st.toast("✅ কমেন্ট ও গিফট পোস্ট হয়েছে!")
+                        st.toast("✅ কমেন্ট পোস্ট হয়েছে!")
                         st.rerun()
                     else:
                         st.warning("কমেন্ট খালি রাখা যাবে না!")
         else:
-            st.info("কমেন্ট বা গিফট পাঠাতে লগইন করুন।")
+            st.info("কমেন্ট করতে লগইন করুন।")
         conn.close()
 
 
@@ -315,7 +314,7 @@ if "user" not in st.session_state:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "🌍 World Feed"
 
-# 7. Sidebar: Authentication
+# 7. Sidebar Authentication
 st.sidebar.header("📸 Authentication")
 
 if not st.session_state.user:
@@ -366,11 +365,11 @@ else:
         st.session_state.is_verified = 1
         st.rerun()
 
-# Navigation Menu
+# Navigation Tabs
 nav_tabs = [
     "🌍 World Feed",
     "📱 Scrolle Shorts Feed",
-    "🤖 AI Assistant",
+    "🤖 ChatGPT AI Assistant",
     "👤 My Profile & Earnings",
     "📤 Create Post / Upload",
 ]
@@ -396,7 +395,7 @@ if tab == "🌍 World Feed":
 
         if short_videos:
             st.markdown(
-                '<div class="scrolle-header">▶️ Scrolle Shorts (Click to Watch Fullscreen Feed)</div>',
+                '<div class="scrolle-header">▶️ Scrolle Shorts Feed</div>',
                 unsafe_allow_html=True,
             )
             cols = st.columns(min(len(short_videos), 3))
@@ -499,7 +498,7 @@ if tab == "🌍 World Feed":
     finally:
         conn.close()
 
-# 📱 --- FULL TIKTOK / SHORTS STYLE SCROLL FEED ---
+# 📱 Shorts Feed
 elif tab == "📱 Scrolle Shorts Feed":
     st.subheader("📱 TikTok & Shorts Vertical Scroll Feed")
     conn = get_db_connection()
@@ -511,9 +510,7 @@ elif tab == "📱 Scrolle Shorts Feed":
     conn.close()
 
     if not short_vids:
-        st.info(
-            "কোনো শর্টস ভিডিও পাওয়া যায়নি। 'Create Post / Upload' থেকে নতুন শর্টস আপলোড করুন!"
-        )
+        st.info("কোনো শর্টস ভিডিও পাওয়া যায়নি।")
     else:
         for idx, sv in enumerate(short_vids):
             st.markdown("---")
@@ -540,7 +537,6 @@ elif tab == "📱 Scrolle Shorts Feed":
 
             with col_side:
                 st.write(" ")
-                st.write(" ")
                 if st.button(
                     f"❤️ {format_value(sv.get('likes', 0))}", key=f"sh_like_{sv['id']}"
                 ):
@@ -559,63 +555,48 @@ elif tab == "📱 Scrolle Shorts Feed":
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
                     st.toast("Followed Creator!")
 
-                if st.button("🔗 Share", key=f"sh_share_{sv['id']}"):
-                    st.toast("Link Copied!")
+# 🤖 ChatGPT AI Assistant Section
+elif tab == "🤖 ChatGPT AI Assistant":
+    st.subheader("🤖 ChatGPT (OpenAI) AI Assistant")
+    st.caption("বাংলা ও ইংরেজি সহ যেকোনো প্রশ্ন করুন!")
 
-                st.markdown(
-                    f'<a href="{SMART_LINK}" target="_blank" style="text-decoration:none; font-weight:bold; color:#00c853;">💰 Earn</a>',
-                    unsafe_allow_html=True,
-                )
+    if "openai_chat_messages" not in st.session_state:
+        st.session_state.openai_chat_messages = []
 
-# 🤖 --- SMART AI CHATBOT SECTION ---
-elif tab == "🤖 AI Assistant":
-    st.subheader("🤖 Smart Multilingual AI Assistant")
-    st.caption(
-        "বাংলা, English সহ যেকোনো ভাষায় কথা বলুন। আপনার সাইটের নিরাপত্তা বা যেকোনো তথ্যের জন্য সাহায্য নিন।"
-    )
-
-    if "ai_chat_messages" not in st.session_state:
-        st.session_state.ai_chat_messages = []
-
-    for msg in st.session_state.ai_chat_messages:
+    for msg in st.session_state.openai_chat_messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if prompt := st.chat_input("এখানে লিখুন..."):
-        st.session_state.ai_chat_messages.append(
+    if prompt := st.chat_input("এখানে আপনার প্রশ্ন লিখুন..."):
+        st.session_state.openai_chat_messages.append(
             {"role": "user", "content": prompt}
         )
         with st.chat_message("user"):
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            if ai_model:
-                with st.spinner("AI উত্তর তৈরি করছে..."):
+            if client:
+                with st.spinner("ChatGPT উত্তর তৈরি করছে..."):
                     try:
-                        sys_context = (
-                            "You are an AI Smart Assistant for 'BD AI book' platform."
-                            " Respond natively in Bengali or English based on user query."
-                            " Be polite, secure, and helpful."
+                        response = client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[
+                                {
+                                    "role": m["role"],
+                                    "content": m["content"],
+                                }
+                                for m in st.session_state.openai_chat_messages
+                            ],
                         )
-                        response = ai_model.generate_content(f"{sys_context}\n\n{prompt}")
-                        reply = response.text
+                        reply = response.choices[0].message.content
                         st.markdown(reply)
-                        st.session_state.ai_chat_messages.append(
+                        st.session_state.openai_chat_messages.append(
                             {"role": "assistant", "content": reply}
                         )
                     except Exception as err:
-                        try:
-                            fallback_model = genai.GenerativeModel("gemini-1.5-flash")
-                            response = fallback_model.generate_content(prompt)
-                            reply = response.text
-                            st.markdown(reply)
-                            st.session_state.ai_chat_messages.append(
-                                {"role": "assistant", "content": reply}
-                            )
-                        except Exception as fb_err:
-                            st.error(f"AI সাইডে ত্রুটি ঘটেছে: {fb_err}")
+                        st.error(f"OpenAI এরর: {err}")
             else:
-                st.error("Gemini API Key সঠিক নয় বা নেটওয়ার্ক সমস্যা!")
+                st.error("OpenAI API Key সেট করা হয়নি! অনুগ্রহ করে Streamlit Secrets-এ OPENAI_API_KEY সেট করুন।")
 
 # 9. Profile Section
 elif tab == "👤 My Profile & Earnings":
@@ -639,11 +620,7 @@ elif tab == "👤 My Profile & Earnings":
         total_likes = sum([v.get("likes", 0) for v in my_videos])
         total_views = sum([v.get("views", 0) for v in my_videos])
 
-        display_name = (
-            user_info.get("full_name")
-            if user_info.get("full_name")
-            else st.session_state.user
-        )
+        display_name = user_info.get("full_name") or st.session_state.user
         pic_path = user_info.get("profile_pic", st.session_state.pic)
 
         show_verified_profile(
@@ -666,236 +643,48 @@ elif tab == "👤 My Profile & Earnings":
             """,
             unsafe_allow_html=True,
         )
-
-        p_tab1, p_tab2, p_tab3 = st.tabs([
-            "💳 Payout Methods",
-            "⚙️ Account & NID Settings",
-            "🎥 Manage Content",
-        ])
-
-        with p_tab1:
-            st.subheader("💳 Global Bank & Payment Setup")
-            with st.form("payout_form"):
-                pay_method = st.selectbox(
-                    "Select Payment Method",
-                    [
-                        "Visa / Mastercard Debit Card",
-                        "International Bank Transfer (SWIFT/IBAN)",
-                        "Mobile Financial Service (bKash / Nagad)",
-                        "PayPal / Crypto (USDT)",
-                    ],
-                    index=0,
-                )
-
-                curr_details = user_info.get("account_details", "") or ""
-                acc_info = st.text_area(
-                    "Account Details (Card Number, Bank Name, Account No, IBAN or Mobile Number)",
-                    value=curr_details,
-                )
-
-                submit_pay = st.form_submit_button("💾 Save Payment Settings")
-                if submit_pay:
-                    cursor.execute(
-                        "UPDATE users SET payment_method = ?, account_details = ? WHERE username = ?",
-                        (pay_method, acc_info, st.session_state.user),
-                    )
-                    conn.commit()
-                    st.success("✅ Payment Details Updated Successfully!")
-                    st.rerun()
-
-        with p_tab2:
-            st.subheader("⚙️ Identity & Profile Settings")
-            with st.form("profile_settings_form"):
-                full_name_input = st.text_input(
-                    "Full Name (English / As per NID)",
-                    value=user_info.get("full_name", "") or "",
-                )
-                nid_input = st.text_input(
-                    "NID Card Number", value=user_info.get("nid_number", "") or ""
-                )
-                address_input = st.text_area(
-                    "Address (Bangladesh / Local Address)",
-                    value=user_info.get("address", "") or "",
-                )
-
-                save_profile = st.form_submit_button("💾 Update Profile Data")
-                if save_profile:
-                    cursor.execute(
-                        "UPDATE users SET full_name = ?, nid_number = ?, address = ? WHERE username = ?",
-                        (
-                            full_name_input,
-                            nid_input,
-                            address_input,
-                            st.session_state.user,
-                        ),
-                    )
-                    conn.commit()
-                    st.success("✅ Profile & Identity details saved!")
-                    st.rerun()
-
-        with p_tab3:
-            st.subheader("🎥 Manage Videos")
-            if not my_videos:
-                st.info("No uploaded videos found.")
-            else:
-                for idx, mv in enumerate(my_videos):
-                    col_vid, col_del = st.columns([3, 1])
-                    with col_vid:
-                        st.write(
-                            f"**{mv.get('title', 'Untitled')}** ({mv.get('views', 0)} Views)"
-                        )
-                        if os.path.exists(mv["video_url"]):
-                            st.video(mv["video_url"])
-                    with col_del:
-                        if st.button("🗑️ Delete", key=f"del_{mv['id']}"):
-                            if os.path.exists(mv["video_url"]):
-                                os.remove(mv["video_url"])
-                            cursor.execute(
-                                "DELETE FROM videos WHERE id = ?", (mv["id"],)
-                            )
-                            conn.commit()
-                            st.success("Deleted!")
-                            st.rerun()
-                    st.divider()
-
         conn.close()
 
-# 10. Upload & Post Creation Section
+# 10. Upload Section
 elif tab == "📤 Create Post / Upload":
     if not st.session_state.user:
         st.warning("Please login to create a post or upload.")
     else:
-        today_date = datetime.now().strftime("%Y-%m-%d")
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT COUNT(*) FROM posts WHERE uploader_name = ? AND SUBSTR(created_at, 1, 10) = ?", (st.session_state.user, today_date))
-        today_posts_count = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM videos WHERE uploader_name = ? AND SUBSTR(created_at, 1, 10) = ? AND video_type = 'short'", (st.session_state.user, today_date))
-        today_shorts_count = cursor.fetchone()[0]
-
-        cursor.execute("SELECT COUNT(*) FROM videos WHERE uploader_name = ? AND SUBSTR(created_at, 1, 10) = ? AND video_type = 'long'", (st.session_state.user, today_date))
-        today_long_count = cursor.fetchone()[0]
-        conn.close()
-
-        st.info(f"📊 **আজকের লিমিট স্ট্যাটাস:** ফটো/টেক্সট পোস্ট: **{today_posts_count}/১০টি** | শর্টস ভিডিও: **{today_shorts_count}/১টি** | লং ভিডিও: **{today_long_count}/১টি**")
-
-        post_type = st.radio(
-            "কী শেয়ার করতে চান সিলেক্ট করুন:",
-            ["📝 Photo & Text Post (দৈনিক ১০টি)", "🎥 Video / Scrolle Shorts (দৈনিক ১টি)"],
+        st.subheader("📝 Create Post")
+        post_text = st.text_area("What's on your mind?")
+        img_file = st.file_uploader(
+            "Upload Photo (JPG/PNG)", type=["jpg", "png", "jpeg"]
         )
 
-        if "Photo & Text" in post_type:
-            st.subheader("📝 Create Photo & Text Post")
-            post_text = st.text_area("What's on your mind?")
-            img_file = st.file_uploader("Upload Photo (JPG/PNG)", type=["jpg", "png", "jpeg"])
+        if st.button("🚀 Publish Post"):
+            if not post_text and not img_file:
+                st.warning("পোস্টে কিছু লিখুন অথবা ছবি যুক্ত করুন!")
+            else:
+                img_path = None
+                if img_file:
+                    img_path = os.path.join(IMAGE_DIR, f"img_{uuid.uuid4()}.jpg")
+                    with open(img_path, "wb") as f:
+                        f.write(img_file.getvalue())
 
-            if st.button("🚀 Publish Post"):
-                if today_posts_count >= 10:
-                    st.error("🛑 আপনার আজকের ১০টি পোস্ট করার লিমিট শেষ হয়ে গেছে!")
-                elif not post_text and not img_file:
-                    st.warning("পোস্টে কিছু লিখুন অথবা ছবি যুক্ত করুন!")
-                else:
-                    is_safe = True
-                    if ai_model and post_text:
-                        with st.spinner("🔍 AI পোস্টটি পরীক্ষা করছে..."):
-                            check_prompt = f"Analyze if this text contains any adult, sexual, vulgar, explicit, or abusive content. Reply ONLY 'SAFE' or 'UNSAFE': {post_text}"
-                            try:
-                                res = ai_model.generate_content(check_prompt)
-                                if "UNSAFE" in res.text.upper():
-                                    is_safe = False
-                            except Exception:
-                                is_safe = True
-
-                    if not is_safe:
-                        st.error("❌ এই পোস্টে সেক্সুয়াল বা খারাপ কোনো বিষয়বস্তু শনাক্ত হয়েছে!")
-                    else:
-                        img_path = None
-                        if img_file:
-                            img_path = os.path.join(IMAGE_DIR, f"img_{uuid.uuid4()}.jpg")
-                            with open(img_path, "wb") as f:
-                                f.write(img_file.getvalue())
-
-                        today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-                        conn = get_db_connection()
-                        cursor = conn.cursor()
-                        cursor.execute(
-                            """
-                            INSERT INTO posts (id, uploader_name, uploader_pic, content, image_url, likes, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                str(uuid.uuid4()),
-                                st.session_state.user,
-                                st.session_state.pic,
-                                post_text,
-                                img_path,
-                                random.randint(5, 20),
-                                today_str,
-                            ),
-                        )
-                        conn.commit()
-                        conn.close()
-                        st.success("🎉 আপনার চমৎকার পোস্টটি নিরাপদে পাবলিশ হয়েছে!")
-                        st.rerun()
-
-        else:
-            st.subheader("📤 Upload Video (AI Safety Protected)")
-            v_title = st.text_input("Video Title")
-            v_type = st.selectbox("Video Format", ["Long Video (দৈনিক ১টি)", "Scrolle Short Video (দৈনিক ১টি)"])
-            file = st.file_uploader("Select MP4 Video File", type=["mp4"])
-
-            if st.button("🚀 Publish Video"):
-                is_short = "short" if "Short" in v_type else "long"
-                
-                if is_short == "short" and today_shorts_count >= 1:
-                    st.error("🛑 আপনি আজ ইতিমধ্যেই ১টি শর্টস ভিডিও আপলোড করেছেন!")
-                elif is_short == "long" and today_long_count >= 1:
-                    st.error("🛑 আপনি আজ ইতিমধ্যেই ১টি লং ভিডিও আপলোড করেছেন!")
-                elif not file or not v_title:
-                    st.warning("ভিডিও টাইটেল এবং MP4 ফাইল দুটোই নির্বাচন করুন!")
-                else:
-                    is_safe = True
-                    if ai_model and v_title:
-                        with st.spinner("🔍 AI ভিডিওর টাইটেল পরীক্ষা করছে..."):
-                            check_prompt = f"Analyze if this video title contains adult or vulgar terms. Reply ONLY 'SAFE' or 'UNSAFE': {v_title}"
-                            try:
-                                res = ai_model.generate_content(check_prompt)
-                                if "UNSAFE" in res.text.upper():
-                                    is_safe = False
-                            except Exception:
-                                is_safe = True
-
-                    if not is_safe:
-                        st.error("❌ ভিডিওর টাইটেলে আপত্তিজনক কথা পাওয়া গেছে!")
-                    else:
-                        v_path = os.path.join(VIDEO_DIR, f"v_{uuid.uuid4()}.mp4")
-                        with open(v_path, "wb") as f:
-                            f.write(file.getvalue())
-
-                        today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-                        conn = get_db_connection()
-                        cursor = conn.cursor()
-                        cursor.execute(
-                            """
-                            INSERT INTO videos (id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, followers, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                str(uuid.uuid4()),
-                                v_path,
-                                st.session_state.user,
-                                st.session_state.pic,
-                                is_short,
-                                v_title,
-                                random.randint(10, 50),
-                                1,
-                                random.randint(1, 10),
-                                today_str,
-                            ),
-                        )
-                        conn.commit()
-                        conn.close()
-                        st.success("🎉 আপনার Full HD ভিডিওটি সফলভাবে আপলোড হয়েছে!")
-                        st.rerun()
+                today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO posts (id, uploader_name, uploader_pic, content, image_url, likes, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        st.session_state.user,
+                        st.session_state.pic,
+                        post_text,
+                        img_path,
+                        random.randint(5, 20),
+                        today_str,
+                    ),
+                )
+                conn.commit()
+                conn.close()
+                st.success("🎉 পোস্ট তৈরি সফল হয়েছে!")
+                st.rerun()
