@@ -1,4 +1,5 @@
-import streamlit as stimport uuid
+import streamlit as st
+import uuid
 import random
 import os
 import sqlite3
@@ -31,7 +32,8 @@ for folder in [VIDEO_DIR, IMAGE_DIR, PROFILE_DIR]:
         os.makedirs(folder)
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_FILE, check_thread=False)
+    # এখানে ভুল সংশোধন করা হয়েছে: check_same_thread=False
+    conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -292,7 +294,6 @@ if tab == "🌍 World Feed":
                     if os.path.exists(sv['video_url']):
                         st.video(sv['video_url'], format="video/mp4")
                     
-                    # 🔴 ক্লিক করলেই সরাসরি TikTok Shorts Feed-এ চলে যাবে!
                     if st.button(f"▶️ Watch in Shorts Feed", key=f"open_short_{sv['id']}"):
                         st.session_state.active_tab = "📱 Scrolle Shorts Feed"
                         st.rerun()
@@ -374,9 +375,8 @@ elif tab == "📱 Scrolle Shorts Feed":
     conn.close()
 
     if not short_vids:
-        st.info("কোনো শর্টস ভিডিও পাওয়া যায়নি। 'Create Post / Upload' থেকে নতুন শর্টস আপলোড করুন!")
+        st.info("কোনো শর্টস ভিডিও পাওয়া যায়নি। 'Create Post / Upload' থেকে নতুন শর্টস আপলোড করুন!")
     else:
-        # TikTok style scrolling layout for all short videos worldwide
         for idx, sv in enumerate(short_vids):
             st.markdown("---")
             col_main, col_side = st.columns([3, 1])
@@ -386,7 +386,6 @@ elif tab == "📱 Scrolle Shorts Feed":
                 if os.path.exists(sv['video_url']):
                     st.video(sv['video_url'], format="video/mp4")
                 
-                # Auto count views
                 conn = get_db_connection()
                 cursor = conn.cursor()
                 cursor.execute("UPDATE videos SET views = views + 1 WHERE id = ?", (sv['id'],))
