@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import random
 import sqlite3
+import urllib.parse
 import uuid
 
 import requests
@@ -27,42 +28,7 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
-# 2. Own Network Built-in AI Function (Hugging Face Model)
-HF_API_URL = (
-    "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
-)
-
-
-def ask_own_network_ai(prompt_text):
-    """
-    অ্যাপের নিজস্ব চ্যাট সার্ভার - কোনো API Key ছাড়াই অ্যাপের ভেতর সরাসরি কাজ করবে।
-    """
-    payload = {
-        "inputs": f"You are a helpful AI assistant in BD AI Book network. Answer clearly in Bengali or English as requested.\nUser: {prompt_text}\nAI:",
-        "parameters": {
-            "max_new_tokens": 250,
-            "temperature": 0.7,
-            "return_full_text": False,
-        },
-    }
-    try:
-        response = requests.post(HF_API_URL, json=payload, timeout=20)
-        if response.status_code == 200:
-            result = response.json()
-            if isinstance(result, list) and len(result) > 0:
-                answer = result[0].get("generated_text", "").strip()
-                if answer:
-                    return answer
-            return "উত্তর তৈরি করা যাচ্ছে, কিছুক্ষণ পর আবার চেষ্টা করুন।"
-        elif response.status_code == 503:
-            return "এআই মডেলটি লোড হচ্ছে, অনুগ্রহ করে ১০-১৫ সেকেন্ড পর আবার প্রশ্ন করুন।"
-        else:
-            return "নেটওয়ার্ক সার্ভার সাড়া দিচ্ছে না। আবার চেষ্টা করুন।"
-    except Exception as e:
-        return f"নেটওয়ার্ক সংযোগে সমস্যা হয়েছে: {e}"
-
-
-# 3. Local Storage and Database Setup
+# 2. Local Storage and Database Setup
 DB_FILE = "local_storage.db"
 VIDEO_DIR = "stored_videos"
 IMAGE_DIR = "stored_images"
@@ -142,7 +108,7 @@ def init_db():
 init_db()
 
 
-# 4. Helper Functions
+# 3. Helper Functions
 def format_value(value):
     if value >= 1000000:
         return f"{value/1000000:.1f}M"
@@ -389,7 +355,7 @@ else:
 nav_tabs = [
     "🌍 World Feed",
     "📱 Scrolle Shorts Feed",
-    "🤖 BD Network AI Assistant",
+    "💬 WhatsApp Support Desk",
     "👤 My Profile & Earnings",
     "📤 Create Post / Upload",
 ]
@@ -402,7 +368,7 @@ tab = st.sidebar.radio(
 )
 st.session_state.active_tab = tab
 
-# 8. World Feed
+# World Feed
 if tab == "🌍 World Feed":
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -518,7 +484,7 @@ if tab == "🌍 World Feed":
     finally:
         conn.close()
 
-# 📱 Shorts Feed
+# Shorts Feed
 elif tab == "📱 Scrolle Shorts Feed":
     st.subheader("📱 TikTok & Shorts Vertical Scroll Feed")
     conn = get_db_connection()
@@ -575,36 +541,44 @@ elif tab == "📱 Scrolle Shorts Feed":
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
                     st.toast("Followed Creator!")
 
-# 🤖 BD Network Built-in AI Assistant
-elif tab == "🤖 BD Network AI Assistant":
-    st.subheader("🤖 BD Network Built-in AI Assistant")
-    st.caption(
-        "নেটওয়ার্কের নিজস্ব বিল্ট-ইন AI Assistant — কোনো প্রকার API Key ছাড়াই কাজ করবে!"
+# 💬 WhatsApp Support Desk (আপনার গোপন নম্বর সহ যুক্ত করা হয়েছে)
+elif tab == "💬 WhatsApp Support Desk":
+    st.subheader("💬 Official WhatsApp Support & Desk")
+    st.caption("সরাসরি আমাদের সাথে কথা বলুন, প্রশ্ন করুন বা সমস্যা শেয়ার করুন।")
+
+    HIDDEN_WA_NUMBER = "8801722003172"
+    default_msg = "হ্যালো! BD AI Book অ্যাপ থেকে যুক্ত হয়েছি। আমার একটি বিষয় জানানোর/ছবি পাঠানোর আছে।"
+    encoded_msg = urllib.parse.quote(default_msg)
+    wa_link = f"https://wa.me/{HIDDEN_WA_NUMBER}?text={encoded_msg}"
+
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #075E54, #128C7E); padding: 25px; border-radius: 15px; color: white; text-align: center; border: 1px solid #25D366; margin: 20px 0;">
+            <h2 style="margin-top:0; color: #ffffff;">🌐 Official WhatsApp Support</h2>
+            <p style="font-size: 15px; color: #e0e0e0; margin-bottom: 20px;">
+                সারা বিশ্বের যেকোনো প্রান্ত থেকে যেকোনো সমস্যা, অভিযোগ, পরামর্শ বা <b>ছবি/স্ক্রিনশট</b> পাঠাতে নিচের বাটনে চাপ দিন।
+            </p>
+            <a href="{wa_link}" target="_blank" style="
+                background-color: #25D366; 
+                color: #121212; 
+                padding: 14px 30px; 
+                text-decoration: none; 
+                font-weight: bold; 
+                font-size: 17px;
+                border-radius: 30px; 
+                display: inline-block;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+                📲 Send WhatsApp Message / Photo
+            </a>
+            <p style="font-size: 12px; color: #ffeb3b; margin-top: 20px; margin-bottom: 0;">
+                ⚠️ <b>Note:</b> Only text messages and photo/file sharing are allowed. Direct calls are not supported.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    if "network_chat_history" not in st.session_state:
-        st.session_state.network_chat_history = []
-
-    for msg in st.session_state.network_chat_history:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-
-    if user_prompt := st.chat_input("এখানে আপনার প্রশ্ন লিখুন..."):
-        st.session_state.network_chat_history.append(
-            {"role": "user", "content": user_prompt}
-        )
-        with st.chat_message("user"):
-            st.markdown(user_prompt)
-
-        with st.chat_message("assistant"):
-            with st.spinner("নেটওয়ার্ক AI উত্তর তৈরি করছে..."):
-                ai_reply = ask_own_network_ai(user_prompt)
-                st.markdown(ai_reply)
-                st.session_state.network_chat_history.append(
-                    {"role": "assistant", "content": ai_reply}
-                )
-
-# 9. Profile Section
+# Profile Section
 elif tab == "👤 My Profile & Earnings":
     if not st.session_state.user:
         st.warning("Please login to view your profile.")
@@ -651,7 +625,7 @@ elif tab == "👤 My Profile & Earnings":
         )
         conn.close()
 
-# 10. Upload Section
+# Upload Section
 elif tab == "📤 Create Post / Upload":
     if not st.session_state.user:
         st.warning("Please login to create a post or upload.")
