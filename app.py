@@ -109,7 +109,7 @@ def init_db():
 init_db()
 
 
-# 3. Helper Functions
+# Helper Functions
 def format_value(value):
     if value >= 1000000:
         return f"{value/1000000:.1f}M"
@@ -264,16 +264,6 @@ st.markdown(
         margin-bottom: 20px;
     }
     
-    .scrolle-header {
-        font-size: 18px;
-        font-weight: bold;
-        color: #1877F2;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
     .monetization-box {
         background: linear-gradient(135deg, #00b09b, #96c93d);
         color: white;
@@ -317,7 +307,7 @@ if "user" not in st.session_state:
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "🌍 World Feed"
 
-# Sidebar Authentication & Navigation Logo
+# Sidebar Navigation & Profile
 if os.path.exists("logo.jpg"):
     st.sidebar.image("logo.jpg", use_container_width=True)
 
@@ -376,6 +366,7 @@ nav_tabs = [
     "🌍 World Feed",
     "📱 Scrolle Shorts Feed",
     "💬 WhatsApp Support Desk",
+    "💳 Payout & Monetization",
     "👤 My Profile & Earnings",
     "📤 Create Post / Upload",
 ]
@@ -401,7 +392,7 @@ if tab == "🌍 World Feed":
 
         if short_videos:
             st.markdown(
-                '<div class="scrolle-header">▶️ Scrolle Shorts Feed</div>',
+                '<h3 style="color: #00c853;">▶️ Scrolle Shorts Feed</h3>',
                 unsafe_allow_html=True,
             )
             cols = st.columns(min(len(short_videos), 3))
@@ -432,7 +423,7 @@ if tab == "🌍 World Feed":
         random.shuffle(combined_feed)
 
         if not combined_feed:
-            st.info("No feeds uploaded yet.")
+            st.info("এখনো কোনো পোস্ট বা ভিডিও নেই। আপলোড সেকশন থেকে আপলোড করুন।")
 
         for index, item in enumerate(combined_feed):
             item_id = str(item["id"])
@@ -598,6 +589,47 @@ elif tab == "💬 WhatsApp Support Desk":
         unsafe_allow_html=True,
     )
 
+# Payout & Bank Setup Section
+elif tab == "💳 Payout & Monetization":
+    st.subheader("🏦 Global Monetization & Bank Setup")
+    st.info("আপনার অর্জিত টাকা পেমেন্ট নিতে নিচের যেকোনো মেথড সিলেক্ট করে তথ্য সাবমিট করুন।")
+
+    pay_method = st.selectbox(
+        "পেমেন্ট মেথড সিলেক্ট করুন:",
+        [
+            "📱 bkash (বিকাশ)",
+            "📱 Nagad (নগদ)",
+            "📱 Rocket (রকেট)",
+            "🌐 PayPal",
+            "💳 Mastercard / Visa Card",
+            "🏦 Bank Transfer",
+        ],
+    )
+
+    acc_num = st.text_input("একাউন্ট নম্বর / ইমেইল / কার্ড নম্বর")
+    holder_name = st.text_input("একাউন্ট হোল্ডারের নাম")
+
+    if st.button("💾 Save Payment Details"):
+        if acc_num and holder_name:
+            if st.session_state.user:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE users SET payment_method = ?, account_details = ? WHERE username = ?",
+                    (
+                        pay_method,
+                        f"{holder_name} - {acc_num}",
+                        st.session_state.user,
+                    ),
+                )
+                conn.commit()
+                conn.close()
+                st.success("✅ পেমেন্ট অ্যাকাউন্ট সফলভাবে যুক্ত হয়েছে!")
+            else:
+                st.error("অনুগ্রহ করে প্রথমে লগইন করুন।")
+        else:
+            st.warning("সবগুলো ঘর সঠিক তথ্য দিয়ে পূরণ করুন।")
+
 # Profile Section
 elif tab == "👤 My Profile & Earnings":
     if not st.session_state.user:
@@ -617,7 +649,14 @@ elif tab == "👤 My Profile & Earnings":
         )
         my_videos = [dict(r) for r in cursor.fetchall()]
 
-        total_likes = sum([v.get("likes", 0) for v in my_videos])
+        cursor.execute(
+            "SELECT * FROM posts WHERE uploader_name = ?", (st.session_state.user,)
+        )
+        my_posts = [dict(r) for r in cursor.fetchall()]
+
+        total_likes = sum([v.get("likes", 0) for v in my_videos]) + sum(
+            [p.get("likes", 0) for p in my_posts]
+        )
         total_views = sum([v.get("views", 0) for v in my_videos])
 
         display_name = user_info.get("full_name") or st.session_state.user
@@ -630,7 +669,7 @@ elif tab == "👤 My Profile & Earnings":
         )
 
         st.write(
-            f"📹 Uploads: **{len(my_videos)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}**"
+            f"📹 Videos/Shorts: **{len(my_videos)}** | 🖼️ Posts: **{len(my_posts)}** | ❤️ Likes: **{format_value(total_likes)}** | 👁️ Views: **{format_value(total_views)}**"
         )
 
         st.markdown(
@@ -639,10 +678,25 @@ elif tab == "👤 My Profile & Earnings":
                 <h3 style="margin:0; color:#fff;">🌐 Global Monetization Dashboard</h3>
                 <p style="margin: 5px 0;">✅ <b>Status: Active & Global Revenue Unlocked</b></p>
                 <h2 style="margin: 10px 0; color: #ffffff;">💰 Est. Earnings: ${(total_views * 0.002) + (total_likes * 0.005):.2f} USD</h2>
+                <p style="margin:0; font-size:12px;">Saved Method: <b>{user_info.get('payment_method', 'Not Set')}</b> ({user_info.get('account_details', 'N/A')})</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+        st.markdown("### 📽️ My Content List")
+        for mv in my_videos:
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.caption(f"Type: {mv.get('video_type', 'long')} | Title: {mv.get('title')}")
+            with col2:
+                if st.button("🗑️ Delete", key=f"del_v_{mv['id']}"):
+                    cursor.execute("DELETE FROM videos WHERE id = ?", (mv["id"],))
+                    conn.commit()
+                    conn.close()
+                    st.toast("ভিডিও মুছে ফেলা হয়েছে!")
+                    st.rerun()
+
         conn.close()
 
 # Upload Section
@@ -650,41 +704,96 @@ elif tab == "📤 Create Post / Upload":
     if not st.session_state.user:
         st.warning("Please login to create a post or upload.")
     else:
-        st.subheader("📝 Create Post")
-        post_text = st.text_area("What's on your mind?")
-        img_file = st.file_uploader(
-            "Upload Photo (JPG/PNG)", type=["jpg", "png", "jpeg"]
+        st.subheader("📤 Upload Content")
+
+        # Guidelines Box
+        st.warning(
+            "⚠️ **Community Guidelines:** সেক্সুয়াল, অ্যাডাল্ট, বা ভায়োলেন্স কনটেন্ট সম্পূর্ণ নিষিদ্ধ। নিয়ম ভঙ্গ করলে অ্যাকাউন্ট ব্লক ও মনিটাইজেশন বাতিল করা হবে।"
         )
 
-        if st.button("🚀 Publish Post"):
-            if not post_text and not img_file:
-                st.warning("পোস্টে কিছু লিখুন অথবা ছবি যুক্ত করুন!")
-            else:
-                img_path = None
-                if img_file:
-                    img_path = os.path.join(IMAGE_DIR, f"img_{uuid.uuid4()}.jpg")
-                    with open(img_path, "wb") as f:
-                        f.write(img_file.getvalue())
+        upload_type = st.radio(
+            "আপলোডের ধরণ নির্বাচন করুন:",
+            ["📝 Post/Photo", "🎥 Long Video", "📱 Short Video"],
+        )
 
-                today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    INSERT INTO posts (id, uploader_name, uploader_pic, content, image_url, likes, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        str(uuid.uuid4()),
-                        st.session_state.user,
-                        st.session_state.pic,
-                        post_text,
-                        img_path,
-                        random.randint(5, 20),
-                        today_str,
-                    ),
-                )
-                conn.commit()
-                conn.close()
-                st.success("🎉 পোস্ট তৈরি সফল হয়েছে!")
-                st.rerun()
+        if upload_type == "📝 Post/Photo":
+            post_text = st.text_area("What's on your mind?")
+            img_file = st.file_uploader(
+                "Upload Photo (JPG/PNG)", type=["jpg", "png", "jpeg"]
+            )
+
+            if st.button("🚀 Publish Post"):
+                if not post_text and not img_file:
+                    st.warning("পোস্টে কিছু লিখুন অথবা ছবি যুক্ত করুন!")
+                else:
+                    img_path = None
+                    if img_file:
+                        img_path = os.path.join(
+                            IMAGE_DIR, f"img_{uuid.uuid4()}.jpg"
+                        )
+                        with open(img_path, "wb") as f:
+                            f.write(img_file.getvalue())
+
+                    today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        """
+                        INSERT INTO posts (id, uploader_name, uploader_pic, content, image_url, likes, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            str(uuid.uuid4()),
+                            st.session_state.user,
+                            st.session_state.pic,
+                            post_text,
+                            img_path,
+                            random.randint(5, 20),
+                            today_str,
+                        ),
+                    )
+                    conn.commit()
+                    conn.close()
+                    st.success("🎉 পোস্ট প্রকাশ করা হয়েছে!")
+                    st.rerun()
+
+        else:
+            v_title = st.text_input("ভিডিওর শিরোনাম/টাইটেল")
+            v_file = st.file_uploader("ভিডিও ফাইল নির্বাচন করুন (MP4)", type=["mp4"])
+
+            if st.button("🚀 Upload Video"):
+                if not v_file or not v_title:
+                    st.warning("টাইটেল এবং ভিডিও ফাইল উভয়ই নিশ্চিত করুন!")
+                else:
+                    v_path = os.path.join(VIDEO_DIR, f"v_{uuid.uuid4()}.mp4")
+                    with open(v_path, "wb") as f:
+                        f.write(v_file.getvalue())
+
+                    v_type = (
+                        "short" if upload_type == "📱 Short Video" else "long"
+                    )
+                    today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        """
+                        INSERT INTO videos (id, video_url, uploader_name, uploader_pic, video_type, title, likes, views, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            str(uuid.uuid4()),
+                            v_path,
+                            st.session_state.user,
+                            st.session_state.pic,
+                            v_type,
+                            v_title,
+                            random.randint(10, 50),
+                            random.randint(50, 200),
+                            today_str,
+                        ),
+                    )
+                    conn.commit()
+                    conn.close()
+                    st.success("🎉 ভিডিও সফলভাবে আপলোড হয়েছে!")
+                    st.rerun()
