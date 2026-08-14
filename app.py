@@ -27,21 +27,39 @@ components.html(
 
 SMART_LINK = "https://omg10.com/4/10954816"
 
+# 2. Own Network Built-in AI Function (Hugging Face Model)
+HF_API_URL = (
+    "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+)
 
-# Free AI Assistant Function (No API Key Required)
-def ask_free_ai(prompt_text):
+
+def ask_own_network_ai(prompt_text):
     """
-    বিনামূল্যে AI উত্তর তৈরি করার জন্য প্রস্তুত ফ্রী এপিআই সার্ভিস।
+    অ্যাপের নিজস্ব চ্যাট সার্ভার - কোনো API Key ছাড়াই অ্যাপের ভেতর সরাসরি কাজ করবে।
     """
+    payload = {
+        "inputs": f"You are a helpful AI assistant in BD AI Book network. Answer clearly in Bengali or English as requested.\nUser: {prompt_text}\nAI:",
+        "parameters": {
+            "max_new_tokens": 250,
+            "temperature": 0.7,
+            "return_full_text": False,
+        },
+    }
     try:
-        url = f"https://text.pollinations.ai/{requests.utils.quote(prompt_text)}"
-        response = requests.get(url, timeout=15)
+        response = requests.post(HF_API_URL, json=payload, timeout=20)
         if response.status_code == 200:
-            return response.text
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                answer = result[0].get("generated_text", "").strip()
+                if answer:
+                    return answer
+            return "উত্তর তৈরি করা যাচ্ছে, কিছুক্ষণ পর আবার চেষ্টা করুন।"
+        elif response.status_code == 503:
+            return "এআই মডেলটি লোড হচ্ছে, অনুগ্রহ করে ১০-১৫ সেকেন্ড পর আবার প্রশ্ন করুন।"
         else:
-            return "দুঃখিত, এআই সার্ভার সাড়া দিচ্ছে না। অনুগ্রহ করে একটু পর চেষ্টা করুন।"
+            return "নেটওয়ার্ক সার্ভার সাড়া দিচ্ছে না। আবার চেষ্টা করুন।"
     except Exception as e:
-        return f"নেটওয়ার্ক জনিত সমস্যা হয়েছে: {e}"
+        return f"নেটওয়ার্ক সংযোগে সমস্যা হয়েছে: {e}"
 
 
 # 3. Local Storage and Database Setup
@@ -371,7 +389,7 @@ else:
 nav_tabs = [
     "🌍 World Feed",
     "📱 Scrolle Shorts Feed",
-    "🤖 Free AI Assistant (No API Key)",
+    "🤖 BD Network AI Assistant",
     "👤 My Profile & Earnings",
     "📤 Create Post / Upload",
 ]
@@ -557,30 +575,32 @@ elif tab == "📱 Scrolle Shorts Feed":
                 if st.button("➕ Follow", key=f"sh_fol_{sv['id']}"):
                     st.toast("Followed Creator!")
 
-# 🤖 Free AI Assistant (No API Key Needed)
-elif tab == "🤖 Free AI Assistant (No API Key)":
-    st.subheader("🤖 Free Smart AI Assistant")
-    st.caption("কোনো API Key ছাড়াই এটি সম্পূর্ণ বিনামূল্যে প্রশ্ন-উত্তর দিতে পারবে!")
+# 🤖 BD Network Built-in AI Assistant
+elif tab == "🤖 BD Network AI Assistant":
+    st.subheader("🤖 BD Network Built-in AI Assistant")
+    st.caption(
+        "নেটওয়ার্কের নিজস্ব বিল্ট-ইন AI Assistant — কোনো প্রকার API Key ছাড়াই কাজ করবে!"
+    )
 
-    if "free_chat_history" not in st.session_state:
-        st.session_state.free_chat_history = []
+    if "network_chat_history" not in st.session_state:
+        st.session_state.network_chat_history = []
 
-    for msg in st.session_state.free_chat_history:
+    for msg in st.session_state.network_chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if user_prompt := st.chat_input("এখানে আপনার যেকোনো প্রশ্ন লিখুন..."):
-        st.session_state.free_chat_history.append(
+    if user_prompt := st.chat_input("এখানে আপনার প্রশ্ন লিখুন..."):
+        st.session_state.network_chat_history.append(
             {"role": "user", "content": user_prompt}
         )
         with st.chat_message("user"):
             st.markdown(user_prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("AI চিন্তাভাবনা করে উত্তর তৈরি করছে..."):
-                ai_reply = ask_free_ai(user_prompt)
+            with st.spinner("নেটওয়ার্ক AI উত্তর তৈরি করছে..."):
+                ai_reply = ask_own_network_ai(user_prompt)
                 st.markdown(ai_reply)
-                st.session_state.free_chat_history.append(
+                st.session_state.network_chat_history.append(
                     {"role": "assistant", "content": ai_reply}
                 )
 
