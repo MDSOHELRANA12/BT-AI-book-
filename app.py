@@ -569,6 +569,27 @@ if tab == "🌍 World Feed":
                     conn.commit()
                     st.toast(f"Followed {uploader_name} successfully!")
 
+            # 👑 OWNER/ADVISOR QUICK PAYOUT PANEL
+            if st.session_state.user in ["MDSOHELRANA", "Sohel Rana", "Sohel_Admin", "MD. SOHEL RANA"]:
+                st.markdown("---")
+                st.markdown("##### 👑 Owner & Advisor Quick Payout Panel")
+                pay_col1, pay_col2 = st.columns([2, 1])
+                with pay_col1:
+                    reward_amount = st.number_input(
+                        "Bonus Amount ($)", min_value=1.0, value=5.0, key=f"amt_{item_id}_{index}"
+                    )
+                with pay_col2:
+                    st.write("")
+                    st.write("")
+                    if st.button(f"💸 Approve & Pay {uploader_name}", key=f"pay_btn_{item_id}_{index}"):
+                        cursor.execute(
+                            "UPDATE users SET earnings = earnings + ? WHERE username = ?",
+                            (reward_amount, uploader_name),
+                        )
+                        conn.commit()
+                        st.toast(f"✅ ${reward_amount} USD sent to {uploader_name}'s wallet!")
+                        st.rerun()
+
             render_comments_section(item_id)
 
             st.markdown("</div>", unsafe_allow_html=True)
@@ -767,21 +788,23 @@ elif tab == "👤 My Profile & Earnings":
 
         is_eligible = (followers >= 300) and (watch_hours >= 3000.0)
 
+        wallet_balance = user_info.get("earnings", 0.0)
+
         if is_eligible:
             monetization_badge = "✅ Eligible & Active"
             est_earnings = (
                 (total_views * 0.002)
                 + (total_likes * 0.005)
-                + user_data_merged["earnings"]
+                + wallet_balance
             )
         else:
             monetization_badge = "🔒 Locked (Requirements not met)"
-            est_earnings = 0.00
+            est_earnings = wallet_balance
 
         show_verified_profile(
             display_name,
             profile_pic_path=pic_path,
-            subtitle=f"Creator | Monetization: {monetization_badge}",
+            subtitle=f"Official Creator | Main Balance: ${wallet_balance:.2f} USD",
             is_verified=True,
         )
 
@@ -798,13 +821,25 @@ elif tab == "👤 My Profile & Earnings":
             st.write(f"⏱️ Watch Time Goal: **{watch_hours:.1f}/3000 Hours**")
             st.progress(min(watch_hours / 3000.0, 1.0))
 
+        # OWNER APPROVED MAIN WALLET BOX
+        st.markdown(
+            f"""
+            <div class="monetization-box" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
+                <h3 style="margin:0; color:#fff;">💰 Owner Approved Main Wallet</h3>
+                <h1 style="margin: 10px 0; color: #ffffff;">${wallet_balance:.2f} USD</h1>
+                <p style="margin:0; font-size:13px;">মালিক বা এডভাইজার পোস্ট ভেরিফাই করে সরাসরি এই ওয়ালেটে টাকা ট্রান্সফার করবেন।</p>
+                <p style="margin:5px 0 0 0; font-size:12px;">Saved Method: <b>{user_info.get('payment_method', 'Not Set')}</b> ({user_info.get('account_details', 'N/A')})</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
         st.markdown(
             f"""
             <div class="monetization-box">
                 <h3 style="margin:0; color:#fff;">🌐 Global Monetization Dashboard</h3>
                 <p style="margin: 5px 0;"><b>Status: {monetization_badge}</b></p>
-                <h2 style="margin: 10px 0; color: #ffffff;">💰 Est. Earnings: ${est_earnings:.2f} USD</h2>
-                <p style="margin:0; font-size:12px;">Saved Method: <b>{user_info.get('payment_method', 'Not Set')}</b> ({user_info.get('account_details', 'N/A')})</p>
+                <h2 style="margin: 10px 0; color: #ffffff;">💰 Total Est. Earnings: ${est_earnings:.2f} USD</h2>
             </div>
             """,
             unsafe_allow_html=True,
